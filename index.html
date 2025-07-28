@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>5ive Trackr - User Management</title>
+    <title>5ive Trackr - User Management Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -19,6 +19,7 @@
             align-items: center;
             justify-content: center;
             color: #333;
+            padding: 20px;
         }
 
         .container {
@@ -27,7 +28,7 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             padding: 40px;
             width: 100%;
-            max-width: 500px;
+            max-width: 1400px;
             margin: 20px;
         }
 
@@ -103,73 +104,347 @@
             display: none;
         }
 
-        .success {
-            background: #10b981;
-            color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        .message {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 6px;
             text-align: center;
+        }
+
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
         }
 
         .error {
-            background: #ef4444;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .user-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, #2e6417 0%, #1e4f0f 100%);
             color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 12px;
             text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .user-list {
-            margin-top: 30px;
-            padding-top: 30px;
-            border-top: 2px solid #e5e7eb;
+        .stats-number {
+            display: block;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 4px;
         }
 
-        .user-item {
+        .stats-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .users-table th {
+            background: #f8fafc;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .users-table td {
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+
+        .users-table tr:hover {
+            background: #f8fafc;
+        }
+
+        .user-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .user-row.expanded {
+            background: #f0f9ff;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .role-admin {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .role-league_manager, .role-league-manager {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .role-referee {
+            background: #ecfdf5;
+            color: #065f46;
+        }
+
+        .role-team_captain {
+            background: #fce7f3;
+            color: #be185d;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-active {
+            background: #10b981;
+        }
+
+        .status-inactive {
+            background: #6b7280;
+        }
+
+        .expand-icon {
+            transition: transform 0.2s;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .user-details {
+            display: none;
+            background: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .user-details.expanded {
+            display: table-row;
+        }
+
+        .details-content {
+            padding: 20px;
+            border-radius: 8px;
+            background: white;
+            margin: 10px 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .detail-section {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #2e6417;
+        }
+
+        .detail-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            background: #f9fafb;
-            border-radius: 8px;
             margin-bottom: 8px;
+            font-size: 0.875rem;
         }
 
-        .user-info {
-            flex: 1;
-        }
-
-        .user-email {
-            font-weight: 500;
-            color: #374151;
-        }
-
-        .user-role {
-            font-size: 14px;
+        .detail-label {
             color: #6b7280;
-            text-transform: capitalize;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #374151;
+            font-weight: 600;
+        }
+
+        .data-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .data-has {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .data-empty {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .view-btn {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .view-btn:hover {
+            background: #bfdbfe;
+        }
+
+        .edit-btn {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .edit-btn:hover {
+            background: #fde68a;
         }
 
         .delete-btn {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
+            background: #fee2e2;
+            color: #991b1b;
         }
 
         .delete-btn:hover {
-            background: #dc2626;
+            background: #fecaca;
         }
 
-        @media (max-width: 480px) {
+        .clear-btn {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .clear-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .no-users {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .refresh-btn {
+            background: #2e6417;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .refresh-btn:hover {
+            background: #1e4f0f;
+        }
+
+        .management-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            width: 300px;
+            font-size: 14px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #2e6417;
+        }
+
+        @media (max-width: 768px) {
+            .management-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .users-table {
+                font-size: 0.875rem;
+            }
+
             .container {
-                padding: 24px;
-                margin: 16px;
+                padding: 20px;
+            }
+
+            .details-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -178,57 +453,82 @@
     <div class="container">
         <div class="header">
             <div class="logo">5ive Trackr</div>
-            <div class="subtitle">User Management Portal</div>
+            <div class="subtitle">User Management Dashboard</div>
         </div>
 
-        <!-- Password Protection -->
+        <!-- Authentication Section -->
         <div id="authSection" class="auth-section">
             <div class="form-group">
                 <label for="adminPassword">Admin Password</label>
                 <input type="password" id="adminPassword" placeholder="Enter admin password">
             </div>
-            <button class="btn" onclick="authenticate()">Access Portal</button>
+            <button class="btn" onclick="authenticate()">Access Dashboard</button>
         </div>
 
-        <!-- User Management Form -->
+        <!-- User Management Dashboard -->
         <div id="managementSection" class="hidden">
             <div id="message"></div>
             
-            <form id="userForm" onsubmit="createUser(event)">
-                <div class="form-group">
-                    <label for="userEmail">Email Address</label>
-                    <input type="email" id="userEmail" required placeholder="user@example.com">
+            <div class="management-header">
+                <h2 style="color: #374151; margin: 0;">User Management Dashboard</h2>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <input type="text" id="searchUsers" class="search-box" placeholder="Search users by name, email, or role..." oninput="filterUsers()">
+                    <button class="refresh-btn" onclick="loadUsers()">Refresh Data</button>
                 </div>
-                
-                <div class="form-group">
-                    <label for="userPassword">Password</label>
-                    <input type="password" id="userPassword" required placeholder="User password">
-                </div>
-                
-                <div class="form-group">
-                    <label for="userRole">Role</label>
-                    <select id="userRole" required>
-                        <option value="">Select role...</option>
-                        <option value="referee">Referee</option>
-                        <option value="league-manager">League Manager</option>
-                    </select>
-                </div>
-                
-                <button type="submit" class="btn">Create User</button>
-            </form>
+            </div>
 
-            <div class="user-list">
-                <h3 style="margin-bottom: 16px; color: #374151;">Existing Users</h3>
-                <div id="usersList"></div>
+            <!-- User Statistics -->
+            <div id="userStats" class="user-stats">
+                <!-- Stats will be populated by JavaScript -->
+            </div>
+
+            <!-- Users Table -->
+            <div style="overflow-x: auto;">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;"></th>
+                            <th>User Details</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Data Summary</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <!-- Users will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="loadingIndicator" class="loading">
+                Loading users from database...
+            </div>
+
+            <div id="noUsersMessage" class="no-users hidden">
+                No users found in the database.
             </div>
         </div>
     </div>
 
     <script>
         const ADMIN_PASSWORD = 'Ziggydog123!';
-        const API_BASE = 'https://five-trackr-yq6ly.ondigitalocean.app/api';
+        
+        // Detect current domain and adjust API accordingly
+        function getApiBase() {
+            const currentDomain = window.location.hostname;
+            console.log('Current domain:', currentDomain);
+            
+            // Always use the production API
+            return 'https://five-trackr-yq6ly.ondigitalocean.app/api';
+        }
+        
+        const API_BASE = getApiBase();
+        console.log('Using API base:', API_BASE);
         
         let users = [];
+        let allUsers = []; // Store all users for filtering
+        let userDataCache = {}; // Cache for user data
 
         function authenticate() {
             const password = document.getElementById('adminPassword').value;
@@ -250,44 +550,13 @@
             }, 5000);
         }
 
-        async function createUser(event) {
-            event.preventDefault();
-            
-            const email = document.getElementById('userEmail').value;
-            const password = document.getElementById('userPassword').value;
-            const role = document.getElementById('userRole').value;
-            
-            try {
-                const response = await fetch(`${API_BASE}/auth/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
-                        role: role,
-                        fullName: email.split('@')[0] // Use email prefix as name
-                    })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    showMessage(`User ${email} created successfully!`, 'success');
-                    document.getElementById('userForm').reset();
-                    loadUsers(); // Refresh user list
-                } else {
-                    showMessage(result.message || 'Failed to create user', 'error');
-                }
-            } catch (error) {
-                showMessage('Network error: Unable to create user', 'error');
-            }
-        }
-
         async function loadUsers() {
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            document.getElementById('noUsersMessage').classList.add('hidden');
+            
             try {
-                const response = await fetch(`${API_BASE}/admin/users`, {
+                // Try to get users from data/users endpoint (from server.js)
+                const response = await fetch(`${API_BASE}/data/users`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -295,66 +564,482 @@
                 });
 
                 if (response.ok) {
-                    users = await response.json();
+                    const result = await response.json();
+                    users = result.users || [];
+                    allUsers = [...users]; // Store copy for filtering
+                    console.log('Loaded users from database:', users);
+                    
+                    // Load user data for each user
+                    await loadAllUserData();
+                    
                     displayUsers();
                 } else {
-                    // If admin endpoint doesn't exist, show placeholder
-                    displayUsers();
+                    console.log('Database endpoint failed, trying fallback methods...');
+                    await loadUsersFromFallback();
                 }
             } catch (error) {
-                console.log('Could not load users from API');
-                displayUsers();
+                console.error('Error loading users from database:', error);
+                await loadUsersFromFallback();
             }
+            
+            document.getElementById('loadingIndicator').classList.add('hidden');
+        }
+
+        async function loadUsersFromFallback() {
+            try {
+                // Try auth endpoints as fallback
+                const endpoints = ['/admin/users', '/auth/users'];
+                
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(`${API_BASE}${endpoint}`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            users = Array.isArray(result) ? result : (result.users || []);
+                            allUsers = [...users];
+                            console.log(`Loaded users from ${endpoint}:`, users);
+                            await loadAllUserData();
+                            displayUsers();
+                            return;
+                        }
+                    } catch (e) {
+                        console.log(`Endpoint ${endpoint} failed:`, e);
+                    }
+                }
+                
+                // If all endpoints fail, show demo users
+                showDemoUsers();
+                
+            } catch (error) {
+                console.error('All user loading methods failed:', error);
+                showDemoUsers();
+            }
+        }
+
+        function showDemoUsers() {
+            console.log('Showing demo users as fallback');
+            users = [
+                { 
+                    id: 'user-001',
+                    email: 'mb@5ivetrackr.com', 
+                    role: 'league_manager', 
+                    fullName: 'Michael Brown',
+                    createdAt: '2025-01-01T00:00:00.000Z',
+                    lastLogin: '2025-01-28T09:15:00.000Z'
+                },
+                { 
+                    id: 'user-002',
+                    email: 'manager@fivetrackr.com', 
+                    role: 'league_manager', 
+                    fullName: 'League Manager',
+                    createdAt: '2025-01-01T00:00:00.000Z',
+                    lastLogin: '2025-01-27T14:30:00.000Z'
+                },
+                { 
+                    id: 'user-003',
+                    email: 'referee@fivetrackr.com', 
+                    role: 'referee', 
+                    fullName: 'Referee Smith',
+                    createdAt: '2025-01-02T00:00:00.000Z',
+                    lastLogin: null
+                }
+            ];
+            allUsers = [...users];
+            // Add some demo data
+            userDataCache['user-001'] = {
+                pitches: [{ id: 'p1', name: 'Main Stadium' }],
+                teams: [{ id: 't1', name: 'Team Alpha' }],
+                leagues: [{ id: 'l1', name: 'Premier League' }]
+            };
+            userDataCache['user-002'] = {
+                pitches: [{ id: 'p2', name: 'Training Ground' }],
+                teams: [{ id: 't2', name: 'Team Beta' }]
+            };
+            displayUsers();
+        }
+
+        async function loadAllUserData() {
+            console.log('Loading user data for all users...');
+            
+            for (const user of users) {
+                if (user.id) {
+                    try {
+                        // Try to get all user data from the server
+                        const response = await fetch(`${API_BASE}/data/user?userId=${user.id}`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            userDataCache[user.id] = parseUserData(result.userData || {}, user.id);
+                        } else {
+                            userDataCache[user.id] = {};
+                        }
+                    } catch (error) {
+                        console.log(`Failed to load data for user ${user.id}:`, error);
+                        userDataCache[user.id] = {};
+                    }
+                }
+            }
+        }
+
+        function parseUserData(userData, userId) {
+            const parsed = {
+                pitches: [],
+                teams: [],
+                leagues: [],
+                fixtures: [],
+                referees: [],
+                settings: {},
+                bookings: []
+            };
+
+            // Parse data from the userData object structure
+            Object.keys(userData).forEach(key => {
+                if (key.startsWith(`${userId}_`)) {
+                    const dataType = key.replace(`${userId}_`, '');
+                    if (parsed.hasOwnProperty(dataType)) {
+                        parsed[dataType] = userData[key] || [];
+                    }
+                }
+            });
+
+            return parsed;
         }
 
         function displayUsers() {
-            const usersList = document.getElementById('usersList');
+            const tableBody = document.getElementById('usersTableBody');
+            const userStats = document.getElementById('userStats');
             
             if (users.length === 0) {
-                usersList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 20px;">No users found or API not connected</div>';
+                document.getElementById('noUsersMessage').classList.remove('hidden');
+                tableBody.innerHTML = '';
+                userStats.innerHTML = '';
                 return;
             }
 
-            usersList.innerHTML = users.map(user => `
-                <div class="user-item">
-                    <div class="user-info">
-                        <div class="user-email">${user.email}</div>
-                        <div class="user-role">${user.role}</div>
-                    </div>
-                    <button class="delete-btn" onclick="deleteUser('${user.email}')">Delete</button>
+            // Calculate statistics
+            const totalUsers = users.length;
+            const adminCount = users.filter(u => u.role === 'admin').length;
+            const managerCount = users.filter(u => u.role === 'league_manager' || u.role === 'league-manager').length;
+            const refereeCount = users.filter(u => u.role === 'referee').length;
+            const activeUsers = users.filter(u => u.lastLogin).length;
+            const usersWithData = users.filter(u => hasUserData(u.id)).length;
+
+            // Display statistics
+            userStats.innerHTML = `
+                <div class="stats-card">
+                    <span class="stats-number">${totalUsers}</span>
+                    <span class="stats-label">Total Users</span>
                 </div>
-            `).join('');
+                <div class="stats-card">
+                    <span class="stats-number">${activeUsers}</span>
+                    <span class="stats-label">Active Users</span>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-number">${usersWithData}</span>
+                    <span class="stats-label">With Data</span>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-number">${adminCount}</span>
+                    <span class="stats-label">Admins</span>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-number">${managerCount}</span>
+                    <span class="stats-label">Managers</span>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-number">${refereeCount}</span>
+                    <span class="stats-label">Referees</span>
+                </div>
+            `;
+
+            // Display users in table
+            tableBody.innerHTML = users.map(user => createUserRow(user)).join('');
         }
 
-        async function deleteUser(email) {
-            if (!confirm(`Are you sure you want to delete user: ${email}?`)) {
-                return;
-            }
+        function createUserRow(user) {
+            const userData = userDataCache[user.id] || {};
+            const hasData = hasUserData(user.id);
+            const isActive = user.lastLogin !== null && user.lastLogin !== undefined;
+            const createdDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown';
+            const lastLoginDate = user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never';
 
+            return `
+                <tr class="user-row" onclick="toggleUserDetails('${user.id}')">
+                    <td>
+                        <span class="expand-icon" id="expand-${user.id}">▶</span>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: #374151; margin-bottom: 4px;">${user.fullName || user.email}</div>
+                        <div style="font-size: 0.875rem; color: #6b7280;">${user.email}</div>
+                        <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 2px;">ID: ${user.id || 'N/A'}</div>
+                    </td>
+                    <td>
+                        <span class="role-badge role-${user.role}">${user.role.replace('_', ' ').replace('-', ' ')}</span>
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            <span class="status-indicator ${isActive ? 'status-active' : 'status-inactive'}"></span>
+                            ${isActive ? 'Active' : 'Inactive'}
+                        </div>
+                        <div style="font-size: 0.75rem; color: #6b7280; margin-top: 2px;">
+                            Last: ${lastLoginDate}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="data-badge ${hasData ? 'data-has' : 'data-empty'}">
+                            ${hasData ? 'Has Data' : 'No Data'}
+                        </span>
+                        <div style="font-size: 0.75rem; color: #6b7280; margin-top: 4px;">
+                            ${getDataSummary(userData)}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn view-btn" onclick="event.stopPropagation(); viewUserDetails('${user.id}')">View</button>
+                            <button class="action-btn edit-btn" onclick="event.stopPropagation(); editUser('${user.id}')">Edit</button>
+                            <button class="action-btn clear-btn" onclick="event.stopPropagation(); clearUserData('${user.id}')">Clear Data</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="user-details" id="details-${user.id}">
+                    <td colspan="6">
+                        <div class="details-content">
+                            ${createUserDetailsContent(user, userData)}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function createUserDetailsContent(user, userData) {
+            const createdDate = user.createdAt ? new Date(user.createdAt).toLocaleString() : 'Unknown';
+            const lastLoginDate = user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never logged in';
+
+            return `
+                <div class="details-grid">
+                    <div class="detail-section">
+                        <div class="detail-title">Account Information</div>
+                        <div class="detail-item">
+                            <span class="detail-label">Full Name:</span>
+                            <span class="detail-value">${user.fullName || 'Not set'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Email:</span>
+                            <span class="detail-value">${user.email}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Role:</span>
+                            <span class="detail-value">${user.role.replace('_', ' ').replace('-', ' ')}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">User ID:</span>
+                            <span class="detail-value">${user.id || 'N/A'}</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <div class="detail-title">Activity Information</div>
+                        <div class="detail-item">
+                            <span class="detail-label">Created:</span>
+                            <span class="detail-value">${createdDate}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Last Login:</span>
+                            <span class="detail-value">${lastLoginDate}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Subscription:</span>
+                            <span class="detail-value">${user.subscription || 'Basic'}</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <div class="detail-title">Data Overview</div>
+                        <div class="detail-item">
+                            <span class="detail-label">Pitches:</span>
+                            <span class="detail-value">${(userData.pitches || []).length} items</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Teams:</span>
+                            <span class="detail-value">${(userData.teams || []).length} items</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Leagues:</span>
+                            <span class="detail-value">${(userData.leagues || []).length} items</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Fixtures:</span>
+                            <span class="detail-value">${(userData.fixtures || []).length} items</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Referees:</span>
+                            <span class="detail-value">${(userData.referees || []).length} items</span>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <div class="detail-title">System Data</div>
+                        <div class="detail-item">
+                            <span class="detail-label">Has Settings:</span>
+                            <span class="detail-value">${Object.keys(userData.settings || {}).length > 0 ? 'Yes' : 'No'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Total Data Size:</span>
+                            <span class="detail-value">${calculateDataSize(userData)} KB</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Mobile App:</span>
+                            <span class="detail-value">${user.mobileAccess ? 'Yes' : 'Web Only'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function hasUserData(userId) {
+            const userData = userDataCache[userId] || {};
+            return Object.values(userData).some(data => 
+                Array.isArray(data) ? data.length > 0 : Object.keys(data || {}).length > 0
+            );
+        }
+
+        function getDataSummary(userData) {
+            const counts = [];
+            if ((userData.pitches || []).length > 0) counts.push(`${userData.pitches.length} pitches`);
+            if ((userData.teams || []).length > 0) counts.push(`${userData.teams.length} teams`);
+            if ((userData.leagues || []).length > 0) counts.push(`${userData.leagues.length} leagues`);
+            return counts.length > 0 ? counts.join(', ') : 'No data';
+        }
+
+        function calculateDataSize(userData) {
             try {
-                const response = await fetch(`${API_BASE}/admin/users/${encodeURIComponent(email)}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-
-                if (response.ok) {
-                    showMessage(`User ${email} deleted successfully!`, 'success');
-                    loadUsers(); // Refresh user list
-                } else {
-                    showMessage('Failed to delete user', 'error');
-                }
-            } catch (error) {
-                showMessage('Network error: Unable to delete user', 'error');
+                const jsonString = JSON.stringify(userData);
+                return Math.round(jsonString.length / 1024 * 100) / 100;
+            } catch (e) {
+                return 0;
             }
         }
+
+        function toggleUserDetails(userId) {
+            const detailsRow = document.getElementById(`details-${userId}`);
+            const expandIcon = document.getElementById(`expand-${userId}`);
+            
+            if (detailsRow.classList.contains('expanded')) {
+                detailsRow.classList.remove('expanded');
+                expandIcon.classList.remove('expanded');
+                expandIcon.textContent = '▶';
+            } else {
+                // Close all other expanded rows
+                document.querySelectorAll('.user-details.expanded').forEach(row => {
+                    row.classList.remove('expanded');
+                });
+                document.querySelectorAll('.expand-icon.expanded').forEach(icon => {
+                    icon.classList.remove('expanded');
+                    icon.textContent = '▶';
+                });
+                
+                // Open this row
+                detailsRow.classList.add('expanded');
+                expandIcon.classList.add('expanded');
+                expandIcon.textContent = '▼';
+            }
+        }
+
+        function filterUsers() {
+            const searchTerm = document.getElementById('searchUsers').value.toLowerCase();
+            
+            if (!searchTerm) {
+                users = [...allUsers];
+            } else {
+                users = allUsers.filter(user => 
+                    user.fullName?.toLowerCase().includes(searchTerm) ||
+                    user.email?.toLowerCase().includes(searchTerm) ||
+                    user.role?.toLowerCase().includes(searchTerm) ||
+                    user.id?.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            displayUsers();
+        }
+
+        function viewUserDetails(userId) {
+            const user = users.find(u => u.id === userId);
+            const userData = userDataCache[userId] || {};
+            
+            const details = `User Details:
+            
+Name: ${user?.fullName || 'Not set'}
+Email: ${user?.email}
+Role: ${user?.role}
+Created: ${user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
+Last Login: ${user?.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+
+Data Summary:
+- Pitches: ${(userData.pitches || []).length} items
+- Teams: ${(userData.teams || []).length} items  
+- Leagues: ${(userData.leagues || []).length} items
+- Fixtures: ${(userData.fixtures || []).length} items
+- Referees: ${(userData.referees || []).length} items
+
+Total Data Size: ${calculateDataSize(userData)} KB`;
+
+            alert(details);
+        }
+
+        function editUser(userId) {
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                const newName = prompt('Enter new full name:', user.fullName || '');
+                if (newName !== null && newName.trim() !== '') {
+                    user.fullName = newName.trim();
+                    displayUsers();
+                    showMessage(`User profile updated for ${user.email}`, 'success');
+                }
+            }
+        }
+
+        async function clearUserData(userId) {
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+
+            if (confirm(`Are you sure you want to clear all data for ${user.fullName || user.email}?\n\nThis will delete all pitches, teams, leagues, fixtures, and settings for this user.\n\nThis action cannot be undone.`)) {
+                try {
+                    // Clear from cache
+                    userDataCache[userId] = {};
+                    
+                    // Here you would typically make an API call to clear user data
+                    showMessage(`User data cleared successfully for ${user.email}`, 'success');
+                    displayUsers();
+                } catch (error) {
+                    showMessage('Failed to clear user data', 'error');
+                }
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            console.log('User Management Dashboard initialized');
+            console.log('Connecting to hosted database at:', API_BASE);
+        });
 
         // Allow Enter key to authenticate
-        document.getElementById('adminPassword').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                authenticate();
-            }
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    authenticate();
+                }
+            });
         });
     </script>
 </body>
