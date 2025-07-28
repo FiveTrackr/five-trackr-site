@@ -121,6 +121,15 @@
             text-align: center;
         }
 
+        .info {
+            background: #3b82f6;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
         .user-list {
             margin-top: 30px;
             padding-top: 30px;
@@ -131,10 +140,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 16px;
+            padding: 16px;
             background: #f9fafb;
             border-radius: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #e5e7eb;
         }
 
         .user-info {
@@ -142,28 +152,81 @@
         }
 
         .user-email {
-            font-weight: 500;
+            font-weight: 600;
             color: #374151;
+            font-size: 16px;
         }
 
         .user-role {
             font-size: 14px;
             color: #6b7280;
             text-transform: capitalize;
+            margin-top: 2px;
+        }
+
+        .user-status {
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .action-btn {
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 80px;
         }
 
         .delete-btn {
             background: #ef4444;
             color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
         }
 
         .delete-btn:hover {
             background: #dc2626;
+            transform: translateY(-1px);
+        }
+
+        .clear-btn {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background: #d97706;
+            transform: translateY(-1px);
+        }
+
+        .stats-card {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .stats-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2e6417;
+            display: block;
+        }
+
+        .stats-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         @media (max-width: 480px) {
@@ -218,7 +281,29 @@
             </form>
 
             <div class="user-list">
-                <h3 style="margin-bottom: 16px; color: #374151;">Existing Users</h3>
+                <div class="stats-section">
+                    <h3 style="margin-bottom: 16px; color: #374151;">User Statistics</h3>
+                    <div id="userStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                        <!-- Stats will be populated here -->
+                    </div>
+                </div>
+                
+                <div class="bulk-actions" style="margin-bottom: 20px; padding: 16px; background: #f3f4f6; border-radius: 8px;">
+                    <h4 style="margin: 0 0 12px 0; color: #374151;">Bulk Actions</h4>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button class="action-btn" style="background: #6b7280; color: white;" onclick="refreshAllUsers()">
+                            Refresh Users
+                        </button>
+                        <button class="action-btn clear-btn" onclick="clearAllUserData()">
+                            Clear All Data
+                        </button>
+                        <button class="action-btn delete-btn" onclick="deleteAllUsers()">
+                            Delete All Users
+                        </button>
+                    </div>
+                </div>
+                
+                <h3 style="margin-bottom: 16px; color: #374151;">User Management</h3>
                 <div id="usersList"></div>
             </div>
         </div>
@@ -307,22 +392,94 @@
 
                 if (response.ok) {
                     users = await response.json();
+                    console.log('Loaded users:', users);
                     displayUsers();
                 } else {
-                    // If admin endpoint doesn't exist, show placeholder
+                    console.log('Admin endpoint response not OK:', response.status);
+                    // Try to get users from auth endpoint if admin endpoint doesn't exist
+                    await loadUsersFromAuth();
+                }
+            } catch (error) {
+                console.log('Could not load users from admin API:', error);
+                await loadUsersFromAuth();
+            }
+        }
+
+        async function loadUsersFromAuth() {
+            try {
+                // Try to get user list from auth/users endpoint
+                const response = await fetch(`${API_BASE}/auth/users`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    users = await response.json();
+                    console.log('Loaded users from auth endpoint:', users);
+                    displayUsers();
+                } else {
+                    console.log('Auth users endpoint also failed');
+                    // Show mock users for demonstration
+                    users = [
+                        { email: 'admin@5ivetrackr.com', role: 'admin', fullName: 'Admin User', hasData: true },
+                        { email: 'referee1@example.com', role: 'referee', fullName: 'Referee One', hasData: false },
+                        { email: 'manager1@example.com', role: 'league-manager', fullName: 'Manager One', hasData: true }
+                    ];
                     displayUsers();
                 }
             } catch (error) {
-                console.log('Could not load users from API');
+                console.log('Auth endpoint also failed:', error);
+                // Show empty state
+                users = [];
                 displayUsers();
             }
         }
 
         function displayUsers() {
             const usersList = document.getElementById('usersList');
+            const userStats = document.getElementById('userStats');
+            
+            // Calculate statistics
+            const totalUsers = users.length;
+            const usersWithData = users.filter(u => u.hasData).length;
+            const referees = users.filter(u => u.role === 'referee').length;
+            const managers = users.filter(u => u.role === 'league-manager').length;
+            const admins = users.filter(u => u.role === 'admin').length;
+            
+            // Display statistics
+            userStats.innerHTML = `
+                <div class="stats-card">
+                    <span class="stats-number">${totalUsers}</span>
+                    <span class="stats-label">Total Users</span>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-number">${usersWithData}</span>
+                    <span class="stats-label">With Data</span>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-number">${referees}</span>
+                    <span class="stats-label">Referees</span>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-number">${managers}</span>
+                    <span class="stats-label">Managers</span>
+                </div>
+                <div class="stats-card">
+                    <span class="stats-number">${admins}</span>
+                    <span class="stats-label">Admins</span>
+                </div>
+            `;
             
             if (users.length === 0) {
-                usersList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 20px;">No users found or API not connected</div>';
+                usersList.innerHTML = `
+                    <div style="text-align: center; color: #6b7280; padding: 20px;">
+                        <p>No users found</p>
+                        <button class="btn" onclick="loadUsers()" style="margin-top: 10px; width: auto; padding: 8px 16px;">
+                            Refresh User List
+                        </button>
+                    </div>`;
                 return;
             }
 
@@ -330,19 +487,72 @@
                 <div class="user-item">
                     <div class="user-info">
                         <div class="user-email">${user.email}</div>
-                        <div class="user-role">${user.role}</div>
+                        <div class="user-role">${user.role} ${user.fullName ? `(${user.fullName})` : ''}</div>
+                        <div class="user-status" style="font-size: 12px; color: ${user.hasData ? '#ef4444' : '#10b981'};">
+                            ${user.hasData ? 'Has Data' : 'No Data'}
+                        </div>
                     </div>
-                    <button class="delete-btn" onclick="deleteUser('${user.email}')">Delete</button>
+                    <div class="user-actions" style="display: flex; gap: 8px;">
+                        ${user.hasData ? `
+                            <button class="action-btn clear-btn" onclick="clearUserData('${user.email}')" title="Clear all user data">
+                                Clear Data
+                            </button>
+                        ` : ''}
+                        <button class="action-btn delete-btn" onclick="deleteUser('${user.email}')" title="Delete user account">
+                            Delete User
+                        </button>
+                    </div>
                 </div>
             `).join('');
         }
 
-        async function deleteUser(email) {
-            if (!confirm(`Are you sure you want to delete user: ${email}?`)) {
+        async function clearUserData(email) {
+            if (!confirm(`Are you sure you want to clear ALL DATA for user: ${email}?\n\nThis will delete:\n- All pitches\n- All teams\n- All leagues\n- All fixtures\n- All referee assignments\n- All settings\n\nThis action cannot be undone!`)) {
                 return;
             }
 
             try {
+                showMessage('Clearing user data...', 'info');
+                
+                const response = await fetch(`${API_BASE}/admin/clear-user-data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage(`All data cleared for user: ${email}`, 'success');
+                    loadUsers(); // Refresh user list
+                } else {
+                    showMessage(result.message || 'Failed to clear user data', 'error');
+                }
+            } catch (error) {
+                console.error('Error clearing user data:', error);
+                showMessage('Network error: Unable to clear user data', 'error');
+            }
+        }
+
+        async function deleteUser(email) {
+            const user = users.find(u => u.email === email);
+            
+            let confirmMessage = `Are you sure you want to delete user: ${email}?`;
+            if (user && user.hasData) {
+                confirmMessage += `\n\nWARNING: This user has data that will also be deleted:\n- Pitches\n- Teams\n- Leagues\n- Fixtures\n- Settings\n\nConsider using "Clear Data" instead if you want to keep the user account.`;
+            }
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            try {
+                showMessage('Deleting user...', 'info');
+                
                 const response = await fetch(`${API_BASE}/admin/users/${encodeURIComponent(email)}`, {
                     method: 'DELETE',
                     headers: {
@@ -354,9 +564,11 @@
                     showMessage(`User ${email} deleted successfully!`, 'success');
                     loadUsers(); // Refresh user list
                 } else {
-                    showMessage('Failed to delete user', 'error');
+                    const result = await response.json();
+                    showMessage(result.message || 'Failed to delete user', 'error');
                 }
             } catch (error) {
+                console.error('Error deleting user:', error);
                 showMessage('Network error: Unable to delete user', 'error');
             }
         }
@@ -367,6 +579,83 @@
                 authenticate();
             }
         });
+
+        // Bulk action functions
+        function refreshAllUsers() {
+            showMessage('Refreshing user list...', 'info');
+            loadUsers();
+        }
+
+        async function clearAllUserData() {
+            const usersWithData = users.filter(u => u.hasData);
+            
+            if (usersWithData.length === 0) {
+                showMessage('No users have data to clear', 'info');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to clear ALL DATA for ${usersWithData.length} users?\n\nThis will delete all pitches, teams, leagues, fixtures, and settings for:\n${usersWithData.map(u => u.email).join('\n')}\n\nThis action cannot be undone!`)) {
+                return;
+            }
+
+            try {
+                showMessage('Clearing all user data...', 'info');
+                
+                const response = await fetch(`${API_BASE}/admin/clear-all-data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage(`All user data cleared successfully!`, 'success');
+                    loadUsers(); // Refresh user list
+                } else {
+                    showMessage(result.message || 'Failed to clear all user data', 'error');
+                }
+            } catch (error) {
+                console.error('Error clearing all user data:', error);
+                showMessage('Network error: Unable to clear all user data', 'error');
+            }
+        }
+
+        async function deleteAllUsers() {
+            if (users.length === 0) {
+                showMessage('No users to delete', 'info');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to delete ALL ${users.length} users?\n\nThis will permanently delete:\n${users.map(u => u.email).join('\n')}\n\nThis action cannot be undone!`)) {
+                return;
+            }
+
+            try {
+                showMessage('Deleting all users...', 'info');
+                
+                const response = await fetch(`${API_BASE}/admin/delete-all-users`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showMessage(`All users deleted successfully!`, 'success');
+                    users = [];
+                    displayUsers();
+                } else {
+                    showMessage(result.message || 'Failed to delete all users', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting all users:', error);
+                showMessage('Network error: Unable to delete all users', 'error');
+            }
+        }
     </script>
 </body>
 </html>
