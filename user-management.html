@@ -226,7 +226,18 @@
 
     <script>
         const ADMIN_PASSWORD = 'Ziggydog123!';
-        const API_BASE = 'https://five-trackr-yq6ly.ondigitalocean.app/api';
+        
+        // Detect current domain and adjust API accordingly
+        function getApiBase() {
+            const currentDomain = window.location.hostname;
+            console.log('Current domain:', currentDomain);
+            
+            // Always use the production API
+            return 'https://five-trackr-yq6ly.ondigitalocean.app/api';
+        }
+        
+        const API_BASE = getApiBase();
+        console.log('Using API base:', API_BASE);
         
         let users = [];
 
