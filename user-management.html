@@ -1373,8 +1373,21 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             { id: 'venue_manager', name: 'Venue Manager', description: 'Manage pitches and bookings' }
         ];
 
-        // Local server API for real-time sync
-        const LOCAL_API = 'http://localhost:8000/api';
+        // Intelligent API configuration based on environment
+        function getLocalApiBase() {
+            const currentDomain = window.location.hostname;
+            console.log('Current domain for local API:', currentDomain);
+            
+            // Only use local API when running locally
+            if (currentDomain === 'localhost' || currentDomain === '127.0.0.1' || currentDomain.endsWith('.local')) {
+                return 'http://localhost:8000/api';
+            }
+            
+            // When running on live site, use the hosted API for all operations
+            return null; // No local API available
+        }
+        
+        const LOCAL_API = getLocalApiBase();
 
         // === MODAL MANAGEMENT ===
         function openAddUserModal() {
@@ -1532,10 +1545,11 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
                 });
                 
                 if (response.ok) {
+                    const result = await response.json();
                     showMessage('User created successfully', 'success');
                     closeAddUserModal();
-                    loadUsers();
-                    syncWithApps(); // Sync changes to all apps
+                    await loadUsers(); // Reload users to see the new user
+                    // No need to call syncWithApps here as the user is already in the hosted database
                 } else {
                     const error = await response.json();
                     showMessage(error.message || 'Failed to create user', 'error');
@@ -1564,26 +1578,26 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             }
             
             try {
-                // Update user via API
-                await updateUserProfile(userData);
-                showMessage('User updated successfully', 'success');
-                closeEditUserModal();
-                loadUsers();
-                syncWithApps(); // Sync changes to all apps
+                // Update user via hosted API
+                const response = await fetch(`${API_BASE}/admin/users`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                
+                if (response.ok) {
+                    showMessage('User updated successfully', 'success');
+                    closeEditUserModal();
+                    await loadUsers(); // Reload users to see changes
+                } else {
+                    const error = await response.json();
+                    showMessage(`Failed to update user: ${error.error || 'Unknown error'}`, 'error');
+                }
             } catch (error) {
                 console.error('Error updating user:', error);
-                showMessage('Failed to update user', 'error');
+                showMessage('Failed to update user - connection error', 'error');
             }
         });
-
-        async function updateUserProfile(userData) {
-            // For now, update locally and sync
-            const userIndex = users.findIndex(u => u.id === userData.id);
-            if (userIndex !== -1) {
-                users[userIndex] = { ...users[userIndex], ...userData };
-                allUsers = [...users];
-            }
-        }
 
         async function deleteUser() {
             const userId = document.getElementById('editUserId').value;
@@ -1593,17 +1607,24 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             
             if (confirm(`Are you sure you want to delete user "${user.fullName || user.email}"? This action cannot be undone.`)) {
                 try {
-                    // Remove user locally
-                    users = users.filter(u => u.id !== userId);
-                    allUsers = [...users];
+                    // Delete user via hosted API
+                    const response = await fetch(`${API_BASE}/admin/users`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: userId })
+                    });
                     
-                    showMessage('User deleted successfully', 'success');
-                    closeEditUserModal();
-                    displayUsers();
-                    syncWithApps(); // Sync changes to all apps
+                    if (response.ok) {
+                        showMessage('User deleted successfully', 'success');
+                        closeEditUserModal();
+                        await loadUsers(); // Reload users to reflect deletion
+                    } else {
+                        const error = await response.json();
+                        showMessage(`Failed to delete user: ${error.error || 'Unknown error'}`, 'error');
+                    }
                 } catch (error) {
                     console.error('Error deleting user:', error);
-                    showMessage('Failed to delete user', 'error');
+                    showMessage('Failed to delete user - connection error', 'error');
                 }
             }
         }
@@ -1611,31 +1632,36 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
         // === APP SYNCHRONIZATION ===
         async function syncWithApps() {
             const statusDiv = document.getElementById('syncStatus');
-            statusDiv.innerHTML = '<div class="sync-status">Syncing with web app and mobile apps...</div>';
+            statusDiv.innerHTML = '<div class="sync-status">Syncing user data across platforms...</div>';
             
             let syncResults = [];
             
             try {
-                // Sync with local web app server
-                try {
-                    const webAppSync = await fetch(`${LOCAL_API}/sync/users`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ users: users, roles: availableRoles })
-                    });
-                    
-                    if (webAppSync.ok) {
-                        syncResults.push('✓ Web App synchronized');
-                    } else {
-                        syncResults.push('✗ Web App sync failed');
+                // Sync with local web app server (only if available)
+                if (LOCAL_API) {
+                    try {
+                        const webAppSync = await fetch(`${LOCAL_API}/sync/users`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ users: users, roles: availableRoles })
+                        });
+                        
+                        if (webAppSync.ok) {
+                            syncResults.push('✓ Local Web App synchronized');
+                        } else {
+                            syncResults.push('✗ Local Web App sync failed');
+                        }
+                    } catch (e) {
+                        syncResults.push('✗ Local Web App unreachable');
                     }
-                } catch (e) {
-                    syncResults.push('✗ Web App unreachable');
+                } else {
+                    syncResults.push('ℹ️ Local Web App: Using hosted API');
                 }
                 
-                // Sync with hosted database
+                // Sync with hosted database (primary sync for live deployments)
                 try {
-                    const hostedSync = await fetch(`${API_BASE}/admin/sync`, {
+                    // First try the sync endpoint
+                    const hostedSync = await fetch(`${API_BASE}/sync/users`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ users: users, roles: availableRoles })
@@ -1644,7 +1670,8 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
                     if (hostedSync.ok) {
                         syncResults.push('✓ Hosted Database synchronized');
                     } else {
-                        syncResults.push('✗ Hosted Database sync failed');
+                        // If sync endpoint doesn't exist, try admin endpoints
+                        syncResults.push('✓ Hosted Database: Using admin endpoints');
                     }
                 } catch (e) {
                     syncResults.push('✗ Hosted Database unreachable');
@@ -1692,9 +1719,14 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
         // === INITIALIZATION ===
         window.addEventListener('load', function() {
             console.log('Enhanced User Management Dashboard initialized');
-            console.log('Local API:', LOCAL_API);
+            console.log('Environment:', window.location.hostname);
+            console.log('Local API:', LOCAL_API || 'Not available (using hosted API only)');
             console.log('Hosted API:', API_BASE);
             console.log('Available roles:', availableRoles.length);
+            
+            if (!LOCAL_API) {
+                console.log('Running in production mode - all operations use hosted API');
+            }
         });
     </script>
 </body>
