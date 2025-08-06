@@ -637,6 +637,9 @@
             }
         }
     </style>
+    
+    <!-- Universal Data Manager -->
+    <script src="https://five-trackr-yq6ly.ondigitalocean.app/js/core/universal-data-manager.js?v=20250805"></script>
 </head>
 <body>
     <div class="container">
@@ -984,13 +987,13 @@
         }
 
         async function loadAllUserData() {
-            console.log('Loading user data for all users...');
+            console.log('Loading user data for all users using enhanced API...');
             
             for (const user of users) {
                 if (user.id) {
                     try {
-                        // Try to get all user data from the server
-                        const response = await fetch(`${API_BASE}/data/user?userId=${user.id}`, {
+                        // Use the new unified endpoint from enhanced API
+                        const response = await fetch(`${API_BASE}/data/user/${user.id}`, {
                             method: 'GET',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -999,7 +1002,12 @@
 
                         if (response.ok) {
                             const result = await response.json();
-                            userDataCache[user.id] = parseUserData(result.userData || {}, user.id);
+                            // Enhanced API returns structured data
+                            if (result.success && result.userData) {
+                                userDataCache[user.id] = result.userData.applicationData || {};
+                            } else {
+                                userDataCache[user.id] = parseUserData(result.userData || {}, user.id);
+                            }
                         } else {
                             userDataCache[user.id] = {};
                         }
@@ -1726,6 +1734,58 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             
             if (!LOCAL_API) {
                 console.log('Running in production mode - all operations use hosted API');
+            }
+            
+            // Initialize Universal Data Manager for admin operations
+            if (window.DataManager) {
+                console.log('Universal Data Manager available for admin operations');
+                
+                // Example: Use DataManager for bulk operations
+                window.adminDataManager = {
+                    async getAllUsersWithDataManager() {
+                        try {
+                            const users = await window.DataManager.getAllUsers();
+                            console.log('Users loaded via DataManager:', users.length);
+                            return users;
+                        } catch (error) {
+                            console.error('Failed to load users via DataManager:', error);
+                            return [];
+                        }
+                    },
+                    
+                    async getUserDataViaManager(userId) {
+                        try {
+                            const userData = await window.DataManager.getUserData(userId);
+                            console.log(`User data for ${userId}:`, userData);
+                            return userData;
+                        } catch (error) {
+                            console.error(`Failed to load data for user ${userId}:`, error);
+                            return null;
+                        }
+                    },
+                    
+                    async clearUserDataViaManager(userId) {
+                        try {
+                            // Clear all data types for a user
+                            const dataTypes = ['pitches', 'teams', 'leagues', 'fixtures', 'referees', 'results', 'bookings', 'reports'];
+                            const operations = dataTypes.map(type => ({
+                                userId: userId,
+                                dataType: type,
+                                data: [],
+                                action: 'replace'
+                            }));
+                            
+                            const result = await window.DataManager.bulkUpdate(operations);
+                            console.log(`Bulk clear completed for user ${userId}:`, result);
+                            return result.success;
+                        } catch (error) {
+                            console.error(`Failed to clear data for user ${userId}:`, error);
+                            return false;
+                        }
+                    }
+                };
+                
+                console.log('Admin Data Manager helpers initialized');
             }
         });
     </script>
