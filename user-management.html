@@ -673,7 +673,7 @@
             <div class="action-buttons">
                 <button class="action-btn add-user-btn" onclick="openAddUserModal()">Add New User</button>
                 <button class="action-btn manage-roles-btn" onclick="openRoleManagementModal()">Manage Roles</button>
-                <button class="action-btn sync-btn" onclick="syncWithApps()">Sync with Apps</button>
+                <button class="action-btn sync-btn" onclick="syncUsersToDatabase()">Sync with Database</button>
             </div>
 
             <!-- Sync Status -->
@@ -870,6 +870,50 @@
             setTimeout(() => {
                 messageDiv.innerHTML = '';
             }, 5000);
+        }
+
+        // Sync users to database function for the button
+        async function syncUsersToDatabase() {
+            showMessage('Syncing users to database...', 'info');
+            const success = await saveUsersToDatabase();
+            if (success) {
+                await forceRefreshUsers();
+            }
+        }
+
+        // Force save users to database
+        async function saveUsersToDatabase() {
+            try {
+                console.log('Saving current users to database...');
+                const response = await fetch(`${API_BASE}/data/users`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    },
+                    body: JSON.stringify({
+                        users: users,
+                        metadata: {
+                            lastUpdated: Date.now(),
+                            totalUsers: users.length,
+                            source: 'admin-panel'
+                        }
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Users saved to database:', result);
+                    showMessage('Users synchronized to database successfully', 'success');
+                    return true;
+                } else {
+                    console.error('Failed to save users to database:', response.status);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error saving users to database:', error);
+                return false;
+            }
         }
 
         // Force refresh users - clears all caches and reloads
@@ -1584,10 +1628,11 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             };
             
             console.log('Creating new user:', userData.email, 'with role:', userData.role);
+            console.log('Using API endpoint:', `${API_BASE}/auth/register`);
             
             try {
-                // Try to create user via hosted API
-                const response = await fetch(`${API_BASE}/auth/register`, {
+                // First try the register endpoint
+                let response = await fetch(`${API_BASE}/auth/register`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
@@ -1596,20 +1641,59 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
                     body: JSON.stringify(userData)
                 });
                 
+                console.log('Register endpoint response status:', response.status);
+                
+                // If register fails, try admin/users endpoint for creating users
+                if (!response.ok) {
+                    console.log('Register endpoint failed, trying admin/users endpoint...');
+                    response = await fetch(`${API_BASE}/admin/users`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        },
+                        body: JSON.stringify(userData)
+                    });
+                    console.log('Admin endpoint response status:', response.status);
+                }
+                
                 if (response.ok) {
                     const result = await response.json();
                     console.log('User creation successful:', result);
-                    showMessage(`User "${userData.fullName}" created successfully!`, 'success');
+                    
+                    // Verify the user was actually created by checking the database
+                    console.log('Verifying user creation in database...');
+                    const verifyResponse = await fetch(`${API_BASE}/data/users`, {
+                        method: 'GET',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache'
+                        }
+                    });
+                    
+                    if (verifyResponse.ok) {
+                        const verifyResult = await verifyResponse.json();
+                        const createdUser = verifyResult.users?.find(u => u.email === userData.email);
+                        
+                        if (createdUser) {
+                            showMessage(`User "${userData.fullName}" created successfully and saved to database!`, 'success');
+                            console.log('User verified in database:', createdUser);
+                        } else {
+                            showMessage(`User created but not found in database. Manual refresh may be needed.`, 'info');
+                        }
+                    }
+                    
                     closeAddUserModal();
                     
                     // Force a fresh reload of users from API
                     console.log('Refreshing user list...');
-                    await loadUsers(); // This will reload users from the API
+                    await forceRefreshUsers(); // Use force refresh to clear all caches
                     
                 } else {
                     const error = await response.json();
                     console.error('User creation failed:', error);
-                    showMessage(error.message || error.error || 'Failed to create user', 'error');
+                    showMessage(error.message || error.error || `Failed to create user (Status: ${response.status})`, 'error');
                 }
             } catch (error) {
                 console.error('Error creating user:', error);
