@@ -818,10 +818,11 @@
             </div>
             <div class="form-group">
                 <label for="newRoleName">Add New Role</label>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="newRoleName" placeholder="Role name (e.g., team_manager)">
-                    <input type="text" id="newRoleDescription" placeholder="Role description">
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <input type="text" id="newRoleName" placeholder="Role name (e.g., team_manager)" style="flex: 1; min-width: 200px;">
+                    <input type="text" id="newRoleDescription" placeholder="Role description" style="flex: 1; min-width: 200px;">
                     <button type="button" class="btn" onclick="addNewRole()">Add Role</button>
+                    <button type="button" class="btn" style="background: #6b7280;" onclick="debugRoles()">Debug Roles</button>
                 </div>
             </div>
             <div class="form-group">
@@ -1511,6 +1512,7 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
         }
 
         function openRoleManagementModal() {
+            console.log('Opening role management modal with', availableRoles.length, 'roles');
             populateRolesList();
             document.getElementById('roleManagementModal').style.display = 'block';
         }
@@ -1522,7 +1524,13 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
         // === ROLE MANAGEMENT ===
         function populateRoleOptions(selectId) {
             const select = document.getElementById(selectId);
+            if (!select) {
+                console.error(`Select element ${selectId} not found`);
+                return;
+            }
+            
             const currentValue = select.value;
+            console.log(`Populating ${selectId} with ${availableRoles.length} roles`);
             
             // Clear existing options except the first one
             while (select.children.length > 1) {
@@ -1538,43 +1546,61 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             });
             
             // Restore previous value if it exists
-            if (currentValue) {
+            if (currentValue && availableRoles.find(r => r.id === currentValue)) {
                 select.value = currentValue;
             }
         }
 
         function populateRolesList() {
             const rolesList = document.getElementById('rolesList');
+            if (!rolesList) {
+                console.error('Roles list element not found');
+                return;
+            }
+            
+            console.log('Populating roles list with', availableRoles.length, 'roles');
             rolesList.innerHTML = '';
             
-            availableRoles.forEach(role => {
+            if (availableRoles.length === 0) {
+                rolesList.innerHTML = '<li class="role-item"><div class="role-name">No roles available</div></li>';
+                return;
+            }
+            
+            availableRoles.forEach((role, index) => {
+                console.log(`Adding role ${index + 1}:`, role);
                 const li = document.createElement('li');
                 li.className = 'role-item';
                 li.innerHTML = `
                     <div>
-                        <div class="role-name">${role.name}</div>
-                        <div class="role-description">${role.description}</div>
+                        <div class="role-name">${role.name || 'Unnamed Role'}</div>
+                        <div class="role-description">${role.description || 'No description'}</div>
+                        <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">ID: ${role.id}</div>
                     </div>
                     <div class="role-actions">
                         <button class="role-edit-btn" onclick="editRole('${role.id}')">Edit</button>
                         ${!['admin', 'league_manager', 'referee', 'user'].includes(role.id) ? 
-                            `<button class="role-delete-btn" onclick="deleteRole('${role.id}')">Delete</button>` : ''}
+                            `<button class="role-delete-btn" onclick="deleteRole('${role.id}')">Delete</button>` : 
+                            '<span style="font-size: 0.75rem; color: #6b7280;">System Role</span>'}
                     </div>
                 `;
                 rolesList.appendChild(li);
             });
+            
+            console.log('Roles list populated successfully');
         }
 
         function addNewRole() {
             const name = document.getElementById('newRoleName').value.trim();
             const description = document.getElementById('newRoleDescription').value.trim();
             
+            console.log('Adding new role:', { name, description });
+            
             if (!name || !description) {
                 alert('Please enter both role name and description');
                 return;
             }
             
-            const id = name.toLowerCase().replace(/\s+/g, '_');
+            const id = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
             
             // Check if role already exists
             if (availableRoles.find(r => r.id === id)) {
@@ -1582,12 +1608,24 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
                 return;
             }
             
-            availableRoles.push({ id, name, description });
+            // Add the new role
+            const newRole = { id, name, description };
+            availableRoles.push(newRole);
             
+            console.log('Role added:', newRole);
+            console.log('Total roles now:', availableRoles.length);
+            
+            // Clear input fields
             document.getElementById('newRoleName').value = '';
             document.getElementById('newRoleDescription').value = '';
             
+            // Update the roles list display
             populateRolesList();
+            
+            // Update role options in dropdowns
+            populateRoleOptions('newUserRole');
+            populateRoleOptions('editUserRole');
+            
             showMessage(`Role "${name}" added successfully`, 'success');
         }
 
@@ -1609,10 +1647,42 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
 
         function deleteRole(roleId) {
             if (confirm('Are you sure you want to delete this role? Users with this role will need to be reassigned.')) {
-                availableRoles = availableRoles.filter(r => r.id !== roleId);
-                populateRolesList();
-                showMessage(`Role deleted successfully`, 'success');
+                const roleIndex = availableRoles.findIndex(r => r.id === roleId);
+                if (roleIndex > -1) {
+                    const deletedRole = availableRoles.splice(roleIndex, 1)[0];
+                    console.log('Deleted role:', deletedRole);
+                    console.log('Remaining roles:', availableRoles.length);
+                    
+                    populateRolesList();
+                    populateRoleOptions('newUserRole');
+                    populateRoleOptions('editUserRole');
+                    
+                    showMessage(`Role "${deletedRole.name}" deleted successfully`, 'success');
+                } else {
+                    console.error('Role not found for deletion:', roleId);
+                }
             }
+        }
+
+        // Debug function to help troubleshoot role issues
+        function debugRoles() {
+            console.log('=== ROLE DEBUG INFO ===');
+            console.log('Available roles:', availableRoles);
+            console.log('Total roles count:', availableRoles.length);
+            console.log('Roles list element:', document.getElementById('rolesList'));
+            console.log('Role management modal display:', document.getElementById('roleManagementModal').style.display);
+            
+            const rolesListHtml = document.getElementById('rolesList').innerHTML;
+            console.log('Roles list HTML length:', rolesListHtml.length);
+            console.log('Roles list HTML:', rolesListHtml.substring(0, 200) + '...');
+            
+            alert(`Debug Info:
+Total Roles: ${availableRoles.length}
+Roles List Element: ${document.getElementById('rolesList') ? 'Found' : 'Missing'}
+Modal Display: ${document.getElementById('roleManagementModal').style.display || 'none'}
+HTML Content Length: ${rolesListHtml.length}
+
+Check console for detailed information.`);
         }
 
         // === USER MANAGEMENT ===
