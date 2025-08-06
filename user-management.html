@@ -889,8 +889,7 @@
                 const response = await fetch(`${API_BASE}/data/users`, {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         users: users,
@@ -945,9 +944,7 @@
                 const response = await fetch(`${API_BASE}/data/users`, {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
+                        'Content-Type': 'application/json'
                     }
                 });
 
@@ -993,8 +990,7 @@
                         const response = await fetch(`${API_BASE}${endpoint}`, {
                             method: 'GET',
                             headers: {
-                                'Content-Type': 'application/json',
-                                'Cache-Control': 'no-cache'
+                                'Content-Type': 'application/json'
                             }
                         });
 
@@ -1705,8 +1701,7 @@ Check console for detailed information.`);
                 let response = await fetch(`${API_BASE}/auth/register`, {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(userData)
                 });
