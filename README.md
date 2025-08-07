@@ -8,45 +8,40 @@ This is the main live build folder for the 5ive Trackr webpage and user manageme
 
 ```
 webpage/
-├── src/                    # Source code and assets
-│   ├── pages/             # Public-facing pages
-│   │   ├── index.html     # Main website homepage
-│   │   └── referee-registration.html # Referee signup page
-│   ├── admin/             # Administrative pages
-│   │   └── user-management.html # User management dashboard
+├── pages/                 # All HTML pages (simplified structure)
+│   ├── index.html         # Admin portal landing page
+│   ├── user-management.html # User management dashboard
+│   └── referee-registration.html # Referee signup page
+│
+├── src/                   # Source code and assets
 │   └── assets/            # Static assets
 │       └── img/           # Images and graphics
-│
-├── build/                 # Build and deployment files
-│   └── (deployment scripts and configs)
 │
 ├── docs/                  # Documentation
 │   ├── README.md          # Project documentation
 │   └── DEPLOYMENT-GUIDE.md # Deployment instructions
 │
-├── .git/                  # Git repository
 ├── .gitignore             # Git ignore rules
 └── CNAME                  # Domain configuration (admin.5ivetrackr.com)
 ```
 
 ### Page Organization
 
-#### **Public Pages** (`src/pages/`)
-- **index.html**: Main website homepage
-  - Landing page for 5ive Trackr
-  - Subscription information
-  - Marketing content
+#### **All Pages** (`pages/`)
+- **index.html**: Admin portal landing page
+  - Entry point for 5ive Trackr admin access
+  - Clean interface with button to user management
+  - Professional branding and styling
+
+- **user-management.html**: Administrative dashboard
+  - User account management
+  - Live API integration
+  - Admin controls and settings
 
 - **referee-registration.html**: Referee registration system
   - Referee signup form
   - Contact information
   - Registration process
-
-#### **Admin Pages** (`src/admin/`)
-- **user-management.html**: Administrative dashboard
-  - User account management
-  - Live API integration
-  - Admin controls and settings
 
 ### Key Features
 
@@ -57,20 +52,22 @@ webpage/
 
 ### Live URLs
 
-- **Main Website**: `https://admin.5ivetrackr.com/` (index.html)
+- **Admin Portal**: `https://admin.5ivetrackr.com/` (index.html)
 - **User Management**: `https://admin.5ivetrackr.com/user-management.html`
 - **Referee Registration**: `https://admin.5ivetrackr.com/referee-registration.html`
 
 ### Development
 
-This webpage serves two main purposes:
-1. **Public Website**: Marketing and subscription management
-2. **Admin Dashboard**: User management and administrative functions
+This webpage serves as the administrative portal for 5ive Trackr:
+1. **Admin Portal Landing**: Clean entry point with navigation to management tools
+2. **User Management Dashboard**: Administrative functions and user controls
+3. **Referee Registration**: Public registration system for referees
 
 ### Integration
 
 - **Webapp Communication**: Links to `https://www.webapp.5ivetrackr.com/`
-- **API Integration**: Uses hosted database for user management
+- **API Integration**: Uses live hosted database (five-trackr-yq6ly.ondigitalocean.app/api)
 - **Cross-Platform**: Coordinates with mobile apps through webapp
+- **Simplified Structure**: All pages in single `pages/` directory for easy navigation
 
-This clean structure separates public content from administrative functions while maintaining easy navigation and deployment.
+This clean structure provides a streamlined admin portal while maintaining easy navigation and deployment.
