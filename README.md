@@ -1,56 +1,76 @@
-# 5ive Trackr Admin Portal
+# 5ive Trackr Webpage - Live Build
 
-A secure user management interface for creating referee and league manager accounts.
+## Project Structure
 
-## Quick Deploy to GitHub Pages (Private Repository)
+This is the main live build folder for the 5ive Trackr webpage and user management system, organized for clean development and deployment.
 
-1. **Clone the repository**: `https://github.com/FiveTrackr/five-trackr-site`
-2. **Enable GitHub Pages** in repository settings (Private repo supported with GitHub Pro)
-3. **Set custom domain**: `admin.5ivetrackr.com`
+### Directory Structure
 
-## Repository Details
+```
+webpage/
+├── src/                    # Source code and assets
+│   ├── pages/             # Public-facing pages
+│   │   ├── index.html     # Main website homepage
+│   │   └── referee-registration.html # Referee signup page
+│   ├── admin/             # Administrative pages
+│   │   └── user-management.html # User management dashboard
+│   └── assets/            # Static assets
+│       └── img/           # Images and graphics
+│
+├── build/                 # Build and deployment files
+│   └── (deployment scripts and configs)
+│
+├── docs/                  # Documentation
+│   ├── README.md          # Project documentation
+│   └── DEPLOYMENT-GUIDE.md # Deployment instructions
+│
+├── .git/                  # Git repository
+├── .gitignore             # Git ignore rules
+└── CNAME                  # Domain configuration (admin.5ivetrackr.com)
+```
 
-- **Owner**: FiveTrackr
-- **Repo**: five-trackr-site
-- **Visibility**: Private (GitHub Pro)
-- **Pages URL**: `https://fivetrackr.github.io/five-trackr-site/`
-- **Custom Domain**: `https://admin.5ivetrackr.com`
+### Page Organization
 
-## Features
+#### **Public Pages** (`src/pages/`)
+- **index.html**: Main website homepage
+  - Landing page for 5ive Trackr
+  - Subscription information
+  - Marketing content
 
-- 🔐 Password protected access
-- 👥 Create referee and league manager accounts
-- 🔗 Direct API integration with main app
-- 📱 Mobile responsive design
-- ✨ Professional UI matching 5ive Trackr branding
+- **referee-registration.html**: Referee registration system
+  - Referee signup form
+  - Contact information
+  - Registration process
 
-## Security
+#### **Admin Pages** (`src/admin/`)
+- **user-management.html**: Administrative dashboard
+  - User account management
+  - Live API integration
+  - Admin controls and settings
 
-- Admin password: `Ziggydog123!`
-- HTTPS enforced
-- API validation
+### Key Features
 
-## API Endpoints
+- **Domain**: `admin.5ivetrackr.com`
+- **Purpose**: Public website + User management
+- **Architecture**: Static HTML with live API integration
+- **Deployment**: GitHub Pages with custom domain
 
-Connects to: `https://five-trackr-yq6ly.ondigitalocean.app/api`
+### Live URLs
 
-- `POST /auth/register` - Create new user
-- `GET /admin/users` - List users (optional)
-- `DELETE /admin/users/:email` - Delete user (optional)
+- **Main Website**: `https://admin.5ivetrackr.com/` (index.html)
+- **User Management**: `https://admin.5ivetrackr.com/user-management.html`
+- **Referee Registration**: `https://admin.5ivetrackr.com/referee-registration.html`
 
-## Domain Setup
+### Development
 
-### Squarespace DNS Configuration
-Add CNAME record:
-- **Name**: `admin`
-- **Value**: `fivetrackr.github.io`
+This webpage serves two main purposes:
+1. **Public Website**: Marketing and subscription management
+2. **Admin Dashboard**: User management and administrative functions
 
-This creates: `https://admin.5ivetrackr.com`
+### Integration
 
-## Local Development
+- **Webapp Communication**: Links to `https://www.webapp.5ivetrackr.com/`
+- **API Integration**: Uses hosted database for user management
+- **Cross-Platform**: Coordinates with mobile apps through webapp
 
-Simply open `index.html` in a web browser. No build process required.
-
-## Support
-
-For issues, contact your development team or check the main 5ive Trackr documentation.
+This clean structure separates public content from administrative functions while maintaining easy navigation and deployment.

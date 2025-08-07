@@ -637,9 +637,6 @@
             }
         }
     </style>
-    
-    <!-- Universal Data Manager -->
-    <script src="https://five-trackr-yq6ly.ondigitalocean.app/js/core/universal-data-manager.js?v=20250805"></script>
 </head>
 <body>
     <div class="container">
@@ -818,11 +815,10 @@
             </div>
             <div class="form-group">
                 <label for="newRoleName">Add New Role</label>
-                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <input type="text" id="newRoleName" placeholder="Role name (e.g., team_manager)" style="flex: 1; min-width: 200px;">
-                    <input type="text" id="newRoleDescription" placeholder="Role description" style="flex: 1; min-width: 200px;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="newRoleName" placeholder="Role name (e.g., team_manager)">
+                    <input type="text" id="newRoleDescription" placeholder="Role description">
                     <button type="button" class="btn" onclick="addNewRole()">Add Role</button>
-                    <button type="button" class="btn" style="background: #6b7280;" onclick="debugRoles()">Debug Roles</button>
                 </div>
             </div>
             <div class="form-group">
@@ -889,8 +885,7 @@
                 const response = await fetch(`${API_BASE}/data/users`, {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         users: users,
@@ -936,41 +931,26 @@
             document.getElementById('noUsersMessage').classList.add('hidden');
             
             try {
-                console.log('Loading users from API:', API_BASE);
-                
-                // Clear cache before loading fresh data
-                userDataCache = {};
-                
                 // Try to get users from data/users endpoint (from server.js)
                 const response = await fetch(`${API_BASE}/data/users`, {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
+                        'Content-Type': 'application/json'
                     }
                 });
 
                 if (response.ok) {
                     const result = await response.json();
-                    console.log('Raw API response:', result);
+                    users = result.users || [];
+                    allUsers = [...users]; // Store copy for filtering
+                    console.log('Loaded users from database:', users);
                     
-                    if (result.success && Array.isArray(result.users)) {
-                        users = result.users;
-                        allUsers = [...users]; // Store copy for filtering
-                        console.log('Successfully loaded users from database:', users.length, 'users');
-                        
-                        // Load user data for each user
-                        await loadAllUserData();
-                        
-                        displayUsers();
-                        showMessage(`Refreshed: ${users.length} users loaded`, 'success');
-                    } else {
-                        console.log('Invalid response format, trying fallback methods...');
-                        await loadUsersFromFallback();
-                    }
+                    // Load user data for each user
+                    await loadAllUserData();
+                    
+                    displayUsers();
                 } else {
-                    console.log(`API responded with status ${response.status}, trying fallback methods...`);
+                    console.log('Database endpoint failed, trying fallback methods...');
                     await loadUsersFromFallback();
                 }
             } catch (error) {
@@ -982,44 +962,34 @@
         }
 
         async function loadUsersFromFallback() {
-            console.log('Trying fallback endpoints...');
             try {
                 // Try auth endpoints as fallback
                 const endpoints = ['/admin/users', '/auth/users'];
                 
                 for (const endpoint of endpoints) {
                     try {
-                        console.log(`Trying endpoint: ${API_BASE}${endpoint}`);
                         const response = await fetch(`${API_BASE}${endpoint}`, {
                             method: 'GET',
                             headers: {
-                                'Content-Type': 'application/json',
-                                'Cache-Control': 'no-cache'
+                                'Content-Type': 'application/json'
                             }
                         });
 
                         if (response.ok) {
                             const result = await response.json();
-                            console.log(`Response from ${endpoint}:`, result);
-                            
                             users = Array.isArray(result) ? result : (result.users || []);
                             allUsers = [...users];
-                            console.log(`Successfully loaded ${users.length} users from ${endpoint}`);
-                            
-                            if (users.length > 0) {
-                                await loadAllUserData();
-                                displayUsers();
-                                showMessage(`Loaded ${users.length} users from fallback endpoint`, 'info');
-                                return;
-                            }
+                            console.log(`Loaded users from ${endpoint}:`, users);
+                            await loadAllUserData();
+                            displayUsers();
+                            return;
                         }
                     } catch (e) {
                         console.log(`Endpoint ${endpoint} failed:`, e);
                     }
                 }
                 
-                // Only show demo users if ALL endpoints fail AND we have no users
-                console.log('All API endpoints failed, showing demo users');
+                // If all endpoints fail, show demo users
                 showDemoUsers();
                 
             } catch (error) {
@@ -1071,27 +1041,22 @@
         }
 
         async function loadAllUserData() {
-            console.log('Loading user data for all users using enhanced API...');
+            console.log('Loading user data for all users...');
             
             for (const user of users) {
                 if (user.id) {
                     try {
                         // Use the new unified endpoint from enhanced API
-                        const response = await fetch(`${API_BASE}/data/user/${user.id}`, {
+                        const response = await fetch(`${API_BASE}/data/user?userId=${user.id}`, {
                             method: 'GET',
                             headers: {
-                                'Content-Type': 'application/json',
+                                'Content-Type': 'application/json'
                             }
                         });
 
                         if (response.ok) {
                             const result = await response.json();
-                            // Enhanced API returns structured data
-                            if (result.success && result.userData) {
-                                userDataCache[user.id] = result.userData.applicationData || {};
-                            } else {
-                                userDataCache[user.id] = parseUserData(result.userData || {}, user.id);
-                            }
+                            userDataCache[user.id] = parseUserData(result.userData || {}, user.id);
                         } else {
                             userDataCache[user.id] = {};
                         }
@@ -1467,16 +1432,8 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
 
         // Intelligent API configuration based on environment
         function getLocalApiBase() {
-            const currentDomain = window.location.hostname;
-            console.log('Current domain for local API:', currentDomain);
-            
-            // Only use local API when running locally
-            if (currentDomain === 'localhost' || currentDomain === '127.0.0.1' || currentDomain.endsWith('.local')) {
-                return 'http://localhost:8000/api';
-            }
-            
-            // When running on live site, use the hosted API for all operations
-            return null; // No local API available
+            // All development and production uses the live hosted API
+            return null; // No local API needed - all data sync happens with live API
         }
         
         const LOCAL_API = getLocalApiBase();
@@ -1512,7 +1469,6 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
         }
 
         function openRoleManagementModal() {
-            console.log('Opening role management modal with', availableRoles.length, 'roles');
             populateRolesList();
             document.getElementById('roleManagementModal').style.display = 'block';
         }
@@ -1524,13 +1480,7 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
         // === ROLE MANAGEMENT ===
         function populateRoleOptions(selectId) {
             const select = document.getElementById(selectId);
-            if (!select) {
-                console.error(`Select element ${selectId} not found`);
-                return;
-            }
-            
             const currentValue = select.value;
-            console.log(`Populating ${selectId} with ${availableRoles.length} roles`);
             
             // Clear existing options except the first one
             while (select.children.length > 1) {
@@ -1546,61 +1496,43 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             });
             
             // Restore previous value if it exists
-            if (currentValue && availableRoles.find(r => r.id === currentValue)) {
+            if (currentValue) {
                 select.value = currentValue;
             }
         }
 
         function populateRolesList() {
             const rolesList = document.getElementById('rolesList');
-            if (!rolesList) {
-                console.error('Roles list element not found');
-                return;
-            }
-            
-            console.log('Populating roles list with', availableRoles.length, 'roles');
             rolesList.innerHTML = '';
             
-            if (availableRoles.length === 0) {
-                rolesList.innerHTML = '<li class="role-item"><div class="role-name">No roles available</div></li>';
-                return;
-            }
-            
-            availableRoles.forEach((role, index) => {
-                console.log(`Adding role ${index + 1}:`, role);
+            availableRoles.forEach(role => {
                 const li = document.createElement('li');
                 li.className = 'role-item';
                 li.innerHTML = `
                     <div>
-                        <div class="role-name">${role.name || 'Unnamed Role'}</div>
-                        <div class="role-description">${role.description || 'No description'}</div>
-                        <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">ID: ${role.id}</div>
+                        <div class="role-name">${role.name}</div>
+                        <div class="role-description">${role.description}</div>
                     </div>
                     <div class="role-actions">
                         <button class="role-edit-btn" onclick="editRole('${role.id}')">Edit</button>
                         ${!['admin', 'league_manager', 'referee', 'user'].includes(role.id) ? 
-                            `<button class="role-delete-btn" onclick="deleteRole('${role.id}')">Delete</button>` : 
-                            '<span style="font-size: 0.75rem; color: #6b7280;">System Role</span>'}
+                            `<button class="role-delete-btn" onclick="deleteRole('${role.id}')">Delete</button>` : ''}
                     </div>
                 `;
                 rolesList.appendChild(li);
             });
-            
-            console.log('Roles list populated successfully');
         }
 
         function addNewRole() {
             const name = document.getElementById('newRoleName').value.trim();
             const description = document.getElementById('newRoleDescription').value.trim();
             
-            console.log('Adding new role:', { name, description });
-            
             if (!name || !description) {
                 alert('Please enter both role name and description');
                 return;
             }
             
-            const id = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+            const id = name.toLowerCase().replace(/\s+/g, '_');
             
             // Check if role already exists
             if (availableRoles.find(r => r.id === id)) {
@@ -1608,24 +1540,12 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
                 return;
             }
             
-            // Add the new role
-            const newRole = { id, name, description };
-            availableRoles.push(newRole);
+            availableRoles.push({ id, name, description });
             
-            console.log('Role added:', newRole);
-            console.log('Total roles now:', availableRoles.length);
-            
-            // Clear input fields
             document.getElementById('newRoleName').value = '';
             document.getElementById('newRoleDescription').value = '';
             
-            // Update the roles list display
             populateRolesList();
-            
-            // Update role options in dropdowns
-            populateRoleOptions('newUserRole');
-            populateRoleOptions('editUserRole');
-            
             showMessage(`Role "${name}" added successfully`, 'success');
         }
 
@@ -1647,42 +1567,10 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
 
         function deleteRole(roleId) {
             if (confirm('Are you sure you want to delete this role? Users with this role will need to be reassigned.')) {
-                const roleIndex = availableRoles.findIndex(r => r.id === roleId);
-                if (roleIndex > -1) {
-                    const deletedRole = availableRoles.splice(roleIndex, 1)[0];
-                    console.log('Deleted role:', deletedRole);
-                    console.log('Remaining roles:', availableRoles.length);
-                    
-                    populateRolesList();
-                    populateRoleOptions('newUserRole');
-                    populateRoleOptions('editUserRole');
-                    
-                    showMessage(`Role "${deletedRole.name}" deleted successfully`, 'success');
-                } else {
-                    console.error('Role not found for deletion:', roleId);
-                }
+                availableRoles = availableRoles.filter(r => r.id !== roleId);
+                populateRolesList();
+                showMessage(`Role deleted successfully`, 'success');
             }
-        }
-
-        // Debug function to help troubleshoot role issues
-        function debugRoles() {
-            console.log('=== ROLE DEBUG INFO ===');
-            console.log('Available roles:', availableRoles);
-            console.log('Total roles count:', availableRoles.length);
-            console.log('Roles list element:', document.getElementById('rolesList'));
-            console.log('Role management modal display:', document.getElementById('roleManagementModal').style.display);
-            
-            const rolesListHtml = document.getElementById('rolesList').innerHTML;
-            console.log('Roles list HTML length:', rolesListHtml.length);
-            console.log('Roles list HTML:', rolesListHtml.substring(0, 200) + '...');
-            
-            alert(`Debug Info:
-Total Roles: ${availableRoles.length}
-Roles List Element: ${document.getElementById('rolesList') ? 'Found' : 'Missing'}
-Modal Display: ${document.getElementById('roleManagementModal').style.display || 'none'}
-HTML Content Length: ${rolesListHtml.length}
-
-Check console for detailed information.`);
         }
 
         // === USER MANAGEMENT ===
@@ -1697,77 +1585,27 @@ Check console for detailed information.`);
                 mobileAccess: document.getElementById('newUserMobileAccess').checked
             };
             
-            console.log('Creating new user:', userData.email, 'with role:', userData.role);
-            console.log('Using API endpoint:', `${API_BASE}/auth/register`);
-            
             try {
-                // First try the register endpoint
-                let response = await fetch(`${API_BASE}/auth/register`, {
+                // Try to create user via hosted API
+                const response = await fetch(`${API_BASE}/auth/register`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(userData)
                 });
                 
-                console.log('Register endpoint response status:', response.status);
-                
-                // If register fails, try admin/users endpoint for creating users
-                if (!response.ok) {
-                    console.log('Register endpoint failed, trying admin/users endpoint...');
-                    response = await fetch(`${API_BASE}/admin/users`, {
-                        method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Cache-Control': 'no-cache'
-                        },
-                        body: JSON.stringify(userData)
-                    });
-                    console.log('Admin endpoint response status:', response.status);
-                }
-                
                 if (response.ok) {
                     const result = await response.json();
-                    console.log('User creation successful:', result);
-                    
-                    // Verify the user was actually created by checking the database
-                    console.log('Verifying user creation in database...');
-                    const verifyResponse = await fetch(`${API_BASE}/data/users`, {
-                        method: 'GET',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Cache-Control': 'no-cache',
-                            'Pragma': 'no-cache'
-                        }
-                    });
-                    
-                    if (verifyResponse.ok) {
-                        const verifyResult = await verifyResponse.json();
-                        const createdUser = verifyResult.users?.find(u => u.email === userData.email);
-                        
-                        if (createdUser) {
-                            showMessage(`User "${userData.fullName}" created successfully and saved to database!`, 'success');
-                            console.log('User verified in database:', createdUser);
-                        } else {
-                            showMessage(`User created but not found in database. Manual refresh may be needed.`, 'info');
-                        }
-                    }
-                    
+                    showMessage('User created successfully', 'success');
                     closeAddUserModal();
-                    
-                    // Force a fresh reload of users from API
-                    console.log('Refreshing user list...');
-                    await forceRefreshUsers(); // Use force refresh to clear all caches
-                    
+                    await loadUsers(); // Reload users to see the new user
+                    // No need to call syncWithApps here as the user is already in the hosted database
                 } else {
                     const error = await response.json();
-                    console.error('User creation failed:', error);
-                    showMessage(error.message || error.error || `Failed to create user (Status: ${response.status})`, 'error');
+                    showMessage(error.message || 'Failed to create user', 'error');
                 }
             } catch (error) {
                 console.error('Error creating user:', error);
-                showMessage('Failed to create user - connection error', 'error');
+                showMessage('Failed to create user', 'error');
             }
         });
 
@@ -1938,60 +1776,7 @@ Check console for detailed information.`);
             if (!LOCAL_API) {
                 console.log('Running in production mode - all operations use hosted API');
             }
-            
-            // Initialize Universal Data Manager for admin operations
-            if (window.DataManager) {
-                console.log('Universal Data Manager available for admin operations');
-                
-                // Example: Use DataManager for bulk operations
-                window.adminDataManager = {
-                    async getAllUsersWithDataManager() {
-                        try {
-                            const users = await window.DataManager.getAllUsers();
-                            console.log('Users loaded via DataManager:', users.length);
-                            return users;
-                        } catch (error) {
-                            console.error('Failed to load users via DataManager:', error);
-                            return [];
-                        }
-                    },
-                    
-                    async getUserDataViaManager(userId) {
-                        try {
-                            const userData = await window.DataManager.getUserData(userId);
-                            console.log(`User data for ${userId}:`, userData);
-                            return userData;
-                        } catch (error) {
-                            console.error(`Failed to load data for user ${userId}:`, error);
-                            return null;
-                        }
-                    },
-                    
-                    async clearUserDataViaManager(userId) {
-                        try {
-                            // Clear all data types for a user
-                            const dataTypes = ['pitches', 'teams', 'leagues', 'fixtures', 'referees', 'results', 'bookings', 'reports'];
-                            const operations = dataTypes.map(type => ({
-                                userId: userId,
-                                dataType: type,
-                                data: [],
-                                action: 'replace'
-                            }));
-                            
-                            const result = await window.DataManager.bulkUpdate(operations);
-                            console.log(`Bulk clear completed for user ${userId}:`, result);
-                            return result.success;
-                        } catch (error) {
-                            console.error(`Failed to clear data for user ${userId}:`, error);
-                            return false;
-                        }
-                    }
-                };
-                
-                console.log('Admin Data Manager helpers initialized');
-            }
         });
     </script>
 </body>
 </html>
-<!-- Cache bust: 2025-08-07 00:00:40 -->
