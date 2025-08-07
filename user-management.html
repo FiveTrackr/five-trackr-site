@@ -1407,6 +1407,17 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
         window.addEventListener('load', function() {
             console.log('User Management Dashboard initialized');
             console.log('Connecting to hosted database at:', API_BASE);
+            
+            // Verify UniversalDataManager is using correct API
+            if (typeof window.UniversalDataManager !== 'undefined') {
+                const manager = new window.UniversalDataManager();
+                console.log('UniversalDataManager API base:', manager.apiBase);
+                if (manager.apiBase !== API_BASE) {
+                    console.warn('⚠️ UniversalDataManager API mismatch! Expected:', API_BASE, 'Got:', manager.apiBase);
+                } else {
+                    console.log('✅ UniversalDataManager API configured correctly');
+                }
+            }
         });
 
         // Allow Enter key to authenticate
@@ -1430,13 +1441,7 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             { id: 'venue_manager', name: 'Venue Manager', description: 'Manage pitches and bookings' }
         ];
 
-        // Intelligent API configuration based on environment
-        function getLocalApiBase() {
-            // All development and production uses the live hosted API
-            return null; // No local API needed - all data sync happens with live API
-        }
-        
-        const LOCAL_API = getLocalApiBase();
+        // Live API only - no local API configuration needed
 
         // === MODAL MANAGEMENT ===
         function openAddUserModal() {
@@ -1686,30 +1691,11 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             let syncResults = [];
             
             try {
-                // Sync with local web app server (only if available)
-                if (LOCAL_API) {
-                    try {
-                        const webAppSync = await fetch(`${LOCAL_API}/sync/users`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ users: users, roles: availableRoles })
-                        });
-                        
-                        if (webAppSync.ok) {
-                            syncResults.push('✓ Local Web App synchronized');
-                        } else {
-                            syncResults.push('✗ Local Web App sync failed');
-                        }
-                    } catch (e) {
-                        syncResults.push('✗ Local Web App unreachable');
-                    }
-                } else {
-                    syncResults.push('ℹ️ Local Web App: Using hosted API');
-                }
+                // Sync with hosted API only (no local servers)
+                console.log('Syncing users to hosted database...');
                 
-                // Sync with hosted database (primary sync for live deployments)
                 try {
-                    // First try the sync endpoint
+                    // Try the sync endpoint first
                     const hostedSync = await fetch(`${API_BASE}/sync/users`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1773,9 +1759,7 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             console.log('Hosted API:', API_BASE);
             console.log('Available roles:', availableRoles.length);
             
-            if (!LOCAL_API) {
-                console.log('Running in production mode - all operations use hosted API');
-            }
+            console.log('Running in live API mode - all operations use hosted API');
         });
     </script>
 </body>
