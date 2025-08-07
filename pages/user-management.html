@@ -989,55 +989,18 @@
                     }
                 }
                 
-                // If all endpoints fail, show demo users
-                showDemoUsers();
+                // If all endpoints fail, show empty state instead of demo users
+                console.log('All API endpoints failed - showing empty state');
+                users = [];
+                allUsers = [];
+                displayUsers();
                 
             } catch (error) {
                 console.error('All user loading methods failed:', error);
-                showDemoUsers();
+                users = [];
+                allUsers = [];
+                displayUsers();
             }
-        }
-
-        function showDemoUsers() {
-            console.log('Showing demo users as fallback');
-            users = [
-                { 
-                    id: 'user-001',
-                    email: 'mb@5ivetrackr.com', 
-                    role: 'league_manager', 
-                    fullName: 'Michael Brown',
-                    createdAt: '2025-01-01T00:00:00.000Z',
-                    lastLogin: '2025-01-28T09:15:00.000Z'
-                },
-                { 
-                    id: 'user-002',
-                    email: 'manager@fivetrackr.com', 
-                    role: 'league_manager', 
-                    fullName: 'League Manager',
-                    createdAt: '2025-01-01T00:00:00.000Z',
-                    lastLogin: '2025-01-27T14:30:00.000Z'
-                },
-                { 
-                    id: 'user-003',
-                    email: 'referee@fivetrackr.com', 
-                    role: 'referee', 
-                    fullName: 'Referee Smith',
-                    createdAt: '2025-01-02T00:00:00.000Z',
-                    lastLogin: null
-                }
-            ];
-            allUsers = [...users];
-            // Add some demo data
-            userDataCache['user-001'] = {
-                pitches: [{ id: 'p1', name: 'Main Stadium' }],
-                teams: [{ id: 't1', name: 'Team Alpha' }],
-                leagues: [{ id: 'l1', name: 'Premier League' }]
-            };
-            userDataCache['user-002'] = {
-                pitches: [{ id: 'p2', name: 'Training Ground' }],
-                teams: [{ id: 't2', name: 'Team Beta' }]
-            };
-            displayUsers();
         }
 
         async function loadAllUserData() {
@@ -1102,6 +1065,9 @@
                 userStats.innerHTML = '';
                 return;
             }
+
+            // Hide no users message when we have users
+            document.getElementById('noUsersMessage').classList.add('hidden');
 
             // Calculate statistics
             const totalUsers = users.length;
@@ -1755,7 +1721,6 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
         window.addEventListener('load', function() {
             console.log('Enhanced User Management Dashboard initialized');
             console.log('Environment:', window.location.hostname);
-            console.log('Local API:', LOCAL_API || 'Not available (using hosted API only)');
             console.log('Hosted API:', API_BASE);
             console.log('Available roles:', availableRoles.length);
             
