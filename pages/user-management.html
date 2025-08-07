@@ -881,33 +881,59 @@
         // Force save users to database
         async function saveUsersToDatabase() {
             try {
-                console.log('Saving current users to database...');
-                const response = await fetch(`${API_BASE}/data/users`, {
+                console.log('Attempting to sync users to database...');
+                // Try sync endpoint first, then fall back to admin endpoint
+                
+                try {
+                    const response = await fetch(`${API_BASE}/sync/users`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            users: users,
+                            metadata: {
+                                lastUpdated: Date.now(),
+                                totalUsers: users.length,
+                                source: 'admin-panel'
+                            }
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('Users synced to database:', result);
+                        showMessage('Users synchronized to database successfully', 'success');
+                        return true;
+                    }
+                } catch (e) {
+                    console.log('Sync endpoint not available, trying admin endpoint...');
+                }
+                
+                // Fallback to admin endpoint
+                const response = await fetch(`${API_BASE}/admin/users`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        users: users,
-                        metadata: {
-                            lastUpdated: Date.now(),
-                            totalUsers: users.length,
-                            source: 'admin-panel'
-                        }
+                        users: users
                     })
                 });
                 
                 if (response.ok) {
                     const result = await response.json();
-                    console.log('Users saved to database:', result);
+                    console.log('Users saved via admin endpoint:', result);
                     showMessage('Users synchronized to database successfully', 'success');
                     return true;
                 } else {
                     console.error('Failed to save users to database:', response.status);
+                    showMessage('Failed to sync users to database', 'error');
                     return false;
                 }
             } catch (error) {
                 console.error('Error saving users to database:', error);
+                showMessage('Error syncing users to database', 'error');
                 return false;
             }
         }
@@ -931,43 +957,12 @@
             document.getElementById('noUsersMessage').classList.add('hidden');
             
             try {
-                // Try to get users from data/users endpoint (from server.js)
-                const response = await fetch(`${API_BASE}/data/users`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    users = result.users || [];
-                    allUsers = [...users]; // Store copy for filtering
-                    console.log('Loaded users from database:', users);
-                    
-                    // Load user data for each user
-                    await loadAllUserData();
-                    
-                    displayUsers();
-                } else {
-                    console.log('Database endpoint failed, trying fallback methods...');
-                    await loadUsersFromFallback();
-                }
-            } catch (error) {
-                console.error('Error loading users from database:', error);
-                await loadUsersFromFallback();
-            }
-            
-            document.getElementById('loadingIndicator').classList.add('hidden');
-        }
-
-        async function loadUsersFromFallback() {
-            try {
-                // Try auth endpoints as fallback
+                // Try the actual working endpoints first
                 const endpoints = ['/admin/users', '/auth/users'];
                 
                 for (const endpoint of endpoints) {
                     try {
+                        console.log(`Trying endpoint: ${API_BASE}${endpoint}`);
                         const response = await fetch(`${API_BASE}${endpoint}`, {
                             method: 'GET',
                             headers: {
@@ -979,28 +974,35 @@
                             const result = await response.json();
                             users = Array.isArray(result) ? result : (result.users || []);
                             allUsers = [...users];
-                            console.log(`Loaded users from ${endpoint}:`, users);
+                            console.log(`Successfully loaded users from ${endpoint}:`, users);
+                            
+                            // Load user data for each user
                             await loadAllUserData();
                             displayUsers();
+                            document.getElementById('loadingIndicator').classList.add('hidden');
                             return;
+                        } else {
+                            console.log(`Endpoint ${endpoint} failed with status: ${response.status}`);
                         }
                     } catch (e) {
-                        console.log(`Endpoint ${endpoint} failed:`, e);
+                        console.log(`Endpoint ${endpoint} failed with error:`, e);
                     }
                 }
                 
-                // If all endpoints fail, show empty state instead of demo users
+                // If all endpoints fail, show empty state
                 console.log('All API endpoints failed - showing empty state');
                 users = [];
                 allUsers = [];
                 displayUsers();
                 
             } catch (error) {
-                console.error('All user loading methods failed:', error);
+                console.error('Error loading users:', error);
                 users = [];
                 allUsers = [];
                 displayUsers();
             }
+            
+            document.getElementById('loadingIndicator').classList.add('hidden');
         }
 
         async function loadAllUserData() {
