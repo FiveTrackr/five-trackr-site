@@ -866,7 +866,7 @@
                 // Hash password client-side before sending to server
                 const hashedPassword = await sha256(password);
                 
-                const resp = await fetch(`${API_BASE}/api/auth/login`, {
+                const resp = await fetch(`${API_BASE}/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password: hashedPassword })
@@ -918,7 +918,7 @@
                 // Use the correct API endpoint for user synchronization
                 const headersCreate = { 'Content-Type': 'application/json' };
                 if (typeof accessToken !== 'undefined' && accessToken) headersCreate['Authorization'] = `Bearer ${accessToken}`;
-                const response = await fetch(`${API_BASE}/api/data/users`, {
+                const response = await fetch(`${API_BASE}/data/users`, {
                     method: 'POST',
                     headers: headersCreate,
                     body: JSON.stringify({
@@ -976,7 +976,7 @@
                 // Use the same endpoint as the live site
                 const headersGet = { 'Content-Type': 'application/json' };
                 if (typeof accessToken !== 'undefined' && accessToken) headersGet['Authorization'] = `Bearer ${accessToken}`;
-                const response = await fetch(`${API_BASE}/api/admin/users`, {
+                const response = await fetch(`${API_BASE}/admin/users`, {
                     method: 'GET',
                     headers: headersGet
                 });
@@ -1618,7 +1618,7 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             
             try {
                 // Create user via Python API
-                const response = await fetch(`${API_BASE}/api/data/users`, {
+                const response = await fetch(`${API_BASE}/data/users`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json'
@@ -1671,7 +1671,7 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
                 // Update user via Python API
                 const headersUpdate = { 'Content-Type': 'application/json' };
                 if (typeof accessToken !== 'undefined' && accessToken) headersUpdate['Authorization'] = `Bearer ${accessToken}`;
-                const response = await fetch(`${API_BASE}/api/data/users`, {
+                const response = await fetch(`${API_BASE}/data/users`, {
                     method: 'PUT',
                     headers: headersUpdate,
                     body: JSON.stringify({
@@ -1712,7 +1712,7 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
                     // Delete user via Python API
                     const headersDelete = { 'Content-Type': 'application/json' };
                     if (typeof accessToken !== 'undefined' && accessToken) headersDelete['Authorization'] = `Bearer ${accessToken}`;
-                    const response = await fetch(`${API_BASE}/api/data/users`, {
+                    const response = await fetch(`${API_BASE}/data/users`, {
                         method: 'DELETE',
                         headers: headersDelete,
                         body: JSON.stringify({
