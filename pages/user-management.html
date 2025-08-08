@@ -878,7 +878,7 @@
                 console.log('Users to sync:', users);
                 
                 // Use the correct API endpoint for user synchronization
-                const response = await fetch(`${API_BASE}/data/users`, {
+                const response = await fetch(`${API_BASE}/api/data/users`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json'
@@ -936,7 +936,7 @@
                 console.log('API Base URL:', API_BASE);
                 
                 // Use the same endpoint as the live site
-                const response = await fetch(`${API_BASE}/admin/users`, {
+                const response = await fetch(`${API_BASE}/api/admin/users`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1002,7 +1002,7 @@
                         console.log(`Loading data for user: ${user.id} (${user.email})`);
                         
                         // Try admin endpoint first, then fall back to data endpoint
-                        let response = await fetch(`${API_BASE}/admin/user/${user.id}`, {
+                        let response = await fetch(`${API_BASE}/api/admin/user/${user.id}`, {
                             method: 'GET',
                             headers: {
                                 'Content-Type': 'application/json'
@@ -1012,7 +1012,7 @@
                         // If admin endpoint fails, try data endpoint as fallback
                         if (!response.ok) {
                             console.log(`Admin endpoint not available for ${user.id}, trying data endpoint...`);
-                            response = await fetch(`${API_BASE}/data/user/${user.id}`, {
+                            response = await fetch(`${API_BASE}/api/data/user/${user.id}`, {
                                 method: 'GET',
                                 headers: {
                                     'Content-Type': 'application/json'
@@ -1610,7 +1610,7 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             
             try {
                 // Create user via Python API
-                const response = await fetch(`${API_BASE}/data/users`, {
+                const response = await fetch(`${API_BASE}/api/data/users`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json'
@@ -1661,7 +1661,7 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             
             try {
                 // Update user via Python API
-                const response = await fetch(`${API_BASE}/data/users`, {
+                const response = await fetch(`${API_BASE}/api/data/users`, {
                     method: 'PUT',
                     headers: { 
                         'Content-Type': 'application/json'
@@ -1702,7 +1702,7 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
                 
                 try {
                     // Delete user via Python API
-                    const response = await fetch(`${API_BASE}/data/users`, {
+                    const response = await fetch(`${API_BASE}/api/data/users`, {
                         method: 'DELETE',
                         headers: { 
                             'Content-Type': 'application/json'
