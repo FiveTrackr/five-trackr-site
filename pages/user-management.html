@@ -648,8 +648,12 @@
         <!-- Authentication Section -->
         <div id="authSection" class="auth-section">
             <div class="form-group">
-                <label for="adminPassword">Admin Password</label>
-                <input type="password" id="adminPassword" placeholder="Enter admin password">
+                <label for="adminEmail">Admin Email</label>
+                <input type="email" id="adminEmail" placeholder="Enter admin email">
+            </div>
+            <div class="form-group">
+                <label for="adminPassword">Password</label>
+                <input type="password" id="adminPassword" placeholder="Enter password">
             </div>
             <button class="btn" onclick="authenticate()">Access Dashboard</button>
         </div>
@@ -832,7 +836,7 @@
 
 <script src="https://five-trackr-yq6ly.ondigitalocean.app/shared-api-config.js"></script>
 <script>
-    const ADMIN_PASSWORD = 'Ziggydog123!';
+    let accessToken = null;
     
     // Use the shared API configuration
     const API_BASE = window.sharedApiConfig ? window.sharedApiConfig.getBaseUrl() : 'https://five-trackr-yq6ly.ondigitalocean.app';
@@ -842,15 +846,37 @@
     let allUsers = []; // Store all users for filtering
     let userDataCache = {}; // Cache for user data
 
-        function authenticate() {
+        async function authenticate() {
+            const email = (document.getElementById('adminEmail').value || '').trim();
             const password = document.getElementById('adminPassword').value;
-            
-            if (password === ADMIN_PASSWORD) {
+            if (!email || !password) {
+                showMessage('Email and password required', 'error');
+                return;
+            }
+            try {
+                const resp = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                if (!resp.ok) {
+                    const err = await resp.text();
+                    console.error('Login failed:', resp.status, err);
+                    showMessage('Login failed. Check credentials.', 'error');
+                    return;
+                }
+                const result = await resp.json();
+                accessToken = result.token || result.access_token || null;
+                if (!accessToken) {
+                    showMessage('Login succeeded but token missing', 'error');
+                    return;
+                }
                 document.getElementById('authSection').classList.add('hidden');
                 document.getElementById('managementSection').classList.remove('hidden');
-                loadUsers();
-            } else {
-                showMessage('Invalid password', 'error');
+                await loadUsers();
+            } catch (e) {
+                console.error('Auth error:', e);
+                showMessage(`Network error: ${e.message}`, 'error');
             }
         }
 
@@ -878,11 +904,11 @@
                 console.log('Users to sync:', users);
                 
                 // Use the correct API endpoint for user synchronization
+                const headersCreate = { 'Content-Type': 'application/json' };
+                if (typeof accessToken !== 'undefined' && accessToken) headersCreate['Authorization'] = `Bearer ${accessToken}`;
                 const response = await fetch(`${API_BASE}/api/data/users`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json'
-                    },
+                    headers: headersCreate,
                     body: JSON.stringify({
                         users: users,
                         metadata: {
@@ -936,11 +962,11 @@
                 console.log('API Base URL:', API_BASE);
                 
                 // Use the same endpoint as the live site
+                const headersGet = { 'Content-Type': 'application/json' };
+                if (typeof accessToken !== 'undefined' && accessToken) headersGet['Authorization'] = `Bearer ${accessToken}`;
                 const response = await fetch(`${API_BASE}/api/admin/users`, {
                     method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                    headers: headersGet
                 });
 
                 console.log('Response status:', response.status);
@@ -1404,11 +1430,12 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
 
         // Allow Enter key to authenticate
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('adminPassword').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    authenticate();
-                }
-            });
+            const submitOnEnter = function(e) {
+                if (e.key === 'Enter') { authenticate(); }
+            };
+            document.getElementById('adminPassword').addEventListener('keypress', submitOnEnter);
+            const emailEl = document.getElementById('adminEmail');
+            if (emailEl) emailEl.addEventListener('keypress', submitOnEnter);
         });
 
         // ===== NEW ENHANCED FUNCTIONALITY =====
@@ -1630,11 +1657,11 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
             
             try {
                 // Update user via Python API
+                const headersUpdate = { 'Content-Type': 'application/json' };
+                if (typeof accessToken !== 'undefined' && accessToken) headersUpdate['Authorization'] = `Bearer ${accessToken}`;
                 const response = await fetch(`${API_BASE}/api/data/users`, {
                     method: 'PUT',
-                    headers: { 
-                        'Content-Type': 'application/json'
-                    },
+                    headers: headersUpdate,
                     body: JSON.stringify({
                         action: 'update',
                         user: userData
@@ -1671,11 +1698,11 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
                 
                 try {
                     // Delete user via Python API
+                    const headersDelete = { 'Content-Type': 'application/json' };
+                    if (typeof accessToken !== 'undefined' && accessToken) headersDelete['Authorization'] = `Bearer ${accessToken}`;
                     const response = await fetch(`${API_BASE}/api/data/users`, {
                         method: 'DELETE',
-                        headers: { 
-                            'Content-Type': 'application/json'
-                        },
+                        headers: headersDelete,
                         body: JSON.stringify({
                             action: 'delete',
                             userId: userId
