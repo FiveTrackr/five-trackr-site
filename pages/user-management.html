@@ -827,30 +827,16 @@
                     <!-- Roles will be populated by JavaScript -->
                 </ul>
             </div>
-        </div>
     </div>
+</div>
 
-    <script>
-        const ADMIN_PASSWORD = 'Ziggydog123!';
-        
-        // Detect current domain and adjust API accordingly
-        function getApiBase() {
-            const currentDomain = window.location.hostname;
-            console.log('Current domain:', currentDomain);
-            
-            // Use local development server when running locally, production server when deployed
-            if (currentDomain === 'localhost' || currentDomain === '127.0.0.1') {
-                return 'http://localhost:8002/api';
-            }
-            
-            // Production API
-            return 'https://five-trackr-yq6ly.ondigitalocean.app/api';
-        }
-        
-        const API_BASE = getApiBase();
-        console.log('Using API base:', API_BASE);
-        
-        let users = [];
+<script src="https://five-trackr-yq6ly.ondigitalocean.app/shared-api-config.js"></script>
+<script>
+    const ADMIN_PASSWORD = 'Ziggydog123!';
+    
+    // Use the shared API configuration
+    const API_BASE = window.sharedApiConfig ? window.sharedApiConfig.getBaseUrl() : 'https://five-trackr-yq6ly.ondigitalocean.app';
+    console.log('Using Shared API Config - Base URL:', API_BASE);        let users = [];
         let allUsers = []; // Store all users for filtering
         let userDataCache = {}; // Cache for user data
 
