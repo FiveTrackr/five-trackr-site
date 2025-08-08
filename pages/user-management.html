@@ -1640,7 +1640,21 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
                 } else {
                     const errorText = await response.text();
                     console.error('❌ Failed to create user:', response.status, errorText);
-                    showMessage(`Failed to create user: ${response.status}`, 'error');
+                    
+                    // Parse error response and show specific message
+                    let errorMessage = `Failed to create user (${response.status})`;
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        if (errorData.error && errorData.error.includes('UNIQUE constraint failed: users.email')) {
+                            errorMessage = 'Email address already exists. Please use a different email.';
+                        } else if (errorData.error) {
+                            errorMessage = `Error: ${errorData.error}`;
+                        }
+                    } catch (e) {
+                        // If JSON parsing fails, use default message
+                    }
+                    
+                    showMessage(errorMessage, 'error');
                 }
             } catch (error) {
                 console.error('❌ Error creating user:', error);
