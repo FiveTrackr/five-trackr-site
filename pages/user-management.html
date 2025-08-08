@@ -827,7 +827,6 @@
                     <!-- Roles will be populated by JavaScript -->
                 </ul>
             </div>
-<<<<<<< HEAD
     </div>
 </div>
 
@@ -837,23 +836,11 @@
     
     // Use the shared API configuration
     const API_BASE = window.sharedApiConfig ? window.sharedApiConfig.getBaseUrl() : 'https://five-trackr-yq6ly.ondigitalocean.app';
-    console.log('Using Shared API Config - Base URL:', API_BASE);        let users = [];
-=======
-        </div>
-    </div>
-
-    <script src="../../shared-api-config.js"></script>
-    <script>
-        const ADMIN_PASSWORD = 'Ziggydog123!';
-        
-        // Use the shared API configuration
-        const API_BASE = window.sharedApiConfig ? window.sharedApiConfig.getBaseUrl() : getApiBase();
-        console.log('Using Shared API Config - Base URL:', API_BASE);
-        
-        let users = [];
->>>>>>> 0c5f19420ae2d911c1b71e10a640dcf72ed63f3d
-        let allUsers = []; // Store all users for filtering
-        let userDataCache = {}; // Cache for user data
+    console.log('Using Shared API Config - Base URL:', API_BASE);
+    
+    let users = [];
+    let allUsers = []; // Store all users for filtering
+    let userDataCache = {}; // Cache for user data
 
         function authenticate() {
             const password = document.getElementById('adminPassword').value;
