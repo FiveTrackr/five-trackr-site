@@ -677,7 +677,6 @@
             <div class="action-buttons">
                 <button class="action-btn add-user-btn" onclick="openAddUserModal()">Add New User</button>
                 <button class="action-btn manage-roles-btn" onclick="openRoleManagementModal()">Manage Roles</button>
-                <button class="action-btn sync-btn" onclick="syncUsersToDatabase()">Sync with Database</button>
             </div>
 
             <!-- Sync Status -->
@@ -918,56 +917,6 @@
             }, 5000);
         }
 
-        // Sync users to database function for the button
-        async function syncUsersToDatabase() {
-            showMessage('Syncing users to database...', 'info');
-            const success = await saveUsersToDatabase();
-            if (success) {
-                await forceRefreshUsers();
-            }
-        }
-
-        // Force save users to database
-        async function saveUsersToDatabase() {
-            try {
-                console.log('🔄 Attempting to sync users to database...');
-                console.log('Users to sync:', users);
-                
-                // Use the correct API endpoint for user synchronization
-                const headersCreate = { 'Content-Type': 'application/json' };
-                if (typeof accessToken !== 'undefined' && accessToken) headersCreate['Authorization'] = `Bearer ${accessToken}`;
-                const response = await fetch(`${API_BASE}/data/users`, {
-                    method: 'POST',
-                    headers: headersCreate,
-                    body: JSON.stringify({
-                        users: users,
-                        metadata: {
-                            lastUpdated: Date.now(),
-                            totalUsers: users.length,
-                            source: 'admin-panel'
-                        }
-                    })
-                });
-                
-                console.log('Sync response status:', response.status);
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('✅ Users synced to database:', result);
-                    showMessage('Users synchronized to database successfully', 'success');
-                    return true;
-                } else {
-                    const errorText = await response.text();
-                    console.error('❌ Failed to save users to database:', response.status, errorText);
-                    showMessage(`Failed to sync users to database: ${response.status}`, 'error');
-                    return false;
-                }
-            } catch (error) {
-                console.error('❌ Error saving users to database:', error);
-                showMessage(`Error syncing users to database: ${error.message}`, 'error');
-                return false;
-            }
-        }
 
         // Force refresh users - clears all caches and reloads
         async function forceRefreshUsers() {
@@ -1537,6 +1486,7 @@ Total Data Size: ${calculateDataSize(userData)} KB`;
         let availableRoles = [
             { id: 'admin', name: 'Administrator', description: 'Full system access and user management' },
             { id: 'league_manager', name: 'League Manager', description: 'Manage leagues, teams, and fixtures' },
+            { id: 'tenant_manager', name: 'Tenant Manager', description: 'Manage tenant-specific users and data' },
             { id: 'referee', name: 'Referee', description: 'Manage match assignments and results' },
             { id: 'user', name: 'Standard User', description: 'Basic access to view and participate' },
             { id: 'team_manager', name: 'Team Manager', description: 'Manage specific teams and players' },
