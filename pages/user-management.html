@@ -822,12 +822,11 @@
                     <input type="password" id="tenantPassword" required placeholder="Enter initial password for tenant">
                 </div>
                 <div class="form-group">
-                    <label for="tenantPlan">Subscription Plan *</label>
-                    <select id="tenantPlan" required>
-                        <option value="trial">Free Trial (14 days)</option>
-                        <option value="basic">Basic ($29/month)</option>
-                        <option value="professional">Professional ($79/month)</option>
-                        <option value="enterprise">Enterprise ($199/month)</option>
+                    <label for="tenantTier">Subscription Tier *</label>
+                    <select id="tenantTier" required>
+                        <option value="starter">Starter (£49.99/month) - 1 pitch, 10 referees, 1 division, 10 teams</option>
+                        <option value="growth">Growth (£99.99/month) - 3 pitches, 25 referees, 5 divisions, 30 teams</option>
+                        <option value="pro">Pro (£179.99/month) - 8 pitches, 50 referees, 10 divisions, 80 teams</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -1017,11 +1016,16 @@
         function createTenantCard(tenant) {
             const tenantId = tenant.id || tenant.user_id;
             const subscription = tenant.subscription || {
-                status: 'trial',
-                plan_name: 'Free Trial',
+                status: 'active',
+                plan_name: 'Starter',
+                tier_id: 'starter',
                 user_limit: 10,
                 venue_limit: 1,
-                base_price: 0
+                base_price: 49.99,
+                pitches_limit: 1,
+                referees_limit: 10,
+                divisions_limit: 1,
+                teams_limit: 10
             };
 
             return `
@@ -1067,16 +1071,24 @@
                             </div>
                             <div class="subscription-info">
                                 <div class="subscription-item">
-                                    <label>Plan:</label>
-                                    <value>${subscription.plan_name}</value>
+                                    <label>Tier:</label>
+                                    <value>${subscription.plan_name} (£${subscription.base_price}/month)</value>
                                 </div>
                                 <div class="subscription-item">
-                                    <label>User Limit:</label>
-                                    <value>${tenant.user_count || 0} / ${subscription.user_limit}</value>
+                                    <label>Pitches:</label>
+                                    <value>${tenant.pitch_count || 0} / ${subscription.pitches_limit || subscription.pitch_per_venue_limit}</value>
                                 </div>
                                 <div class="subscription-item">
-                                    <label>Venue Limit:</label>
-                                    <value>${tenant.venue_count || 0} / ${subscription.venue_limit}</value>
+                                    <label>Referees:</label>
+                                    <value>${tenant.referee_count || 0} / ${subscription.referees_limit}</value>
+                                </div>
+                                <div class="subscription-item">
+                                    <label>Divisions:</label>
+                                    <value>${tenant.division_count || 0} / ${subscription.divisions_limit}</value>
+                                </div>
+                                <div class="subscription-item">
+                                    <label>Teams:</label>
+                                    <value>${tenant.team_count || 0} / ${subscription.teams_limit || subscription.user_limit}</value>
                                 </div>
                                 <div class="subscription-item">
                                     <label>Next Billing:</label>
@@ -1297,7 +1309,7 @@
                 password: password,
                 user_role: 'league_manager',
                 subscription: {
-                    plan: document.getElementById('tenantPlan').value,
+                    tier: document.getElementById('tenantTier').value,
                     user_limit: parseInt(document.getElementById('tenantUserLimit').value),
                     venue_limit: parseInt(document.getElementById('tenantVenueLimit').value)
                 }
