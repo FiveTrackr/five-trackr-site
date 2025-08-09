@@ -918,18 +918,21 @@
                 </div>
 
                 <div class="form-section">
-                    <h4>👥 Assistant Manager</h4>
+                    <h4>👥 Assistant Manager (Optional)</h4>
+                    <p style="font-size: 12px; color: #6b7280; margin: -5px 0 10px 0;">
+                        Leave blank if no assistant manager is needed. If you fill any field, all fields become required.
+                    </p>
                     <div class="form-group">
-                        <label for="assistantManagerEmail">Email Address *</label>
-                        <input type="email" id="assistantManagerEmail" required>
+                        <label for="assistantManagerEmail">Email Address</label>
+                        <input type="email" id="assistantManagerEmail" placeholder="assistant@example.com">
                     </div>
                     <div class="form-group">
-                        <label for="assistantManagerName">Full Name *</label>
-                        <input type="text" id="assistantManagerName" required>
+                        <label for="assistantManagerName">Full Name</label>
+                        <input type="text" id="assistantManagerName" placeholder="Assistant Manager Name">
                     </div>
                     <div class="form-group">
-                        <label for="assistantManagerPassword">Password *</label>
-                        <input type="password" id="assistantManagerPassword" required placeholder="Enter password for assistant manager">
+                        <label for="assistantManagerPassword">Password</label>
+                        <input type="password" id="assistantManagerPassword" placeholder="Enter password for assistant manager">
                     </div>
                 </div>
 
@@ -1195,7 +1198,7 @@
                                 </div>
                                 <div class="manager-item">
                                     <label>👥 Assistant Manager:</label>
-                                    <value>${tenant.assistant_manager && tenant.assistant_manager.email ? tenant.assistant_manager.email : 'No assistant manager assigned'}</value>
+                                    <value>${tenant.assistant_manager && tenant.assistant_manager.email ? tenant.assistant_manager.email : 'N/A'}</value>
                                 </div>
                             </div>
                         </div>
@@ -1469,29 +1472,44 @@
         document.getElementById('tenantForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Validate required fields for both managers
+            // Validate required fields for league manager (always required)
             const leagueManagerEmail = document.getElementById('leagueManagerEmail').value.trim();
             const leagueManagerName = document.getElementById('leagueManagerName').value.trim();
             const leagueManagerPassword = document.getElementById('leagueManagerPassword').value;
             
+            if (!leagueManagerEmail || !leagueManagerName || !leagueManagerPassword) {
+                alert('Please fill in all required fields for League Manager');
+                return;
+            }
+            
+            if (leagueManagerPassword.length < 6) {
+                alert('League Manager password must be at least 6 characters long');
+                return;
+            }
+            
+            // Check assistant manager fields (optional)
             const assistantManagerEmail = document.getElementById('assistantManagerEmail').value.trim();
             const assistantManagerName = document.getElementById('assistantManagerName').value.trim();
             const assistantManagerPassword = document.getElementById('assistantManagerPassword').value;
             
-            if (!leagueManagerEmail || !leagueManagerName || !leagueManagerPassword ||
-                !assistantManagerEmail || !assistantManagerName || !assistantManagerPassword) {
-                alert('Please fill in all required fields for both managers');
-                return;
-            }
+            // If any assistant manager field is filled, all must be filled
+            const hasAnyAssistantField = assistantManagerEmail || assistantManagerName || assistantManagerPassword;
             
-            if (leagueManagerPassword.length < 6 || assistantManagerPassword.length < 6) {
-                alert('Both passwords must be at least 6 characters long');
-                return;
-            }
-            
-            if (leagueManagerEmail === assistantManagerEmail) {
-                alert('League Manager and Assistant Manager must have different email addresses');
-                return;
+            if (hasAnyAssistantField) {
+                if (!assistantManagerEmail || !assistantManagerName || !assistantManagerPassword) {
+                    alert('If creating an Assistant Manager, all fields must be filled (email, name, and password)');
+                    return;
+                }
+                
+                if (assistantManagerPassword.length < 6) {
+                    alert('Assistant Manager password must be at least 6 characters long');
+                    return;
+                }
+                
+                if (leagueManagerEmail === assistantManagerEmail) {
+                    alert('League Manager and Assistant Manager must have different email addresses');
+                    return;
+                }
             }
             
             const tenantData = {
@@ -1501,16 +1519,20 @@
                     password: leagueManagerPassword,
                     user_role: 'league_manager'
                 },
-                assistant_manager: {
-                    email: assistantManagerEmail,
-                    full_name: assistantManagerName,
-                    password: assistantManagerPassword,
-                    user_role: 'assistant_manager'
-                },
                 subscription: {
                     tier: document.getElementById('tenantTier').value
                 }
             };
+            
+            // Only add assistant manager if fields are provided
+            if (hasAnyAssistantField) {
+                tenantData.assistant_manager = {
+                    email: assistantManagerEmail,
+                    full_name: assistantManagerName,
+                    password: assistantManagerPassword,
+                    user_role: 'assistant_manager'
+                };
+            }
 
             try {
                 const headers = { 'Content-Type': 'application/json' };
@@ -1526,14 +1548,24 @@
                     const result = await response.json();
                     console.log('✅ Tenant created successfully:', result);
                     
-                    // Show success message with both manager accounts
-                    const successMessage = [
+                    // Show success message with manager accounts
+                    const successMessageParts = [
                         `✅ Tenant created successfully!`,
-                        `🏆 League Manager: ${leagueManagerEmail} (${leagueManagerName})`,
-                        `👥 Assistant Manager: ${assistantManagerEmail} (${assistantManagerName})`,
+                        `🏆 League Manager: ${leagueManagerEmail} (${leagueManagerName})`
+                    ];
+                    
+                    if (hasAnyAssistantField) {
+                        successMessageParts.push(`👥 Assistant Manager: ${assistantManagerEmail} (${assistantManagerName})`);
+                    } else {
+                        successMessageParts.push(`ℹ️ No Assistant Manager created`);
+                    }
+                    
+                    successMessageParts.push(
                         `📊 Tier: ${result.tier || document.getElementById('tenantTier').selectedOptions[0].text.split(' ')[0]}`,
-                        `🔐 Both accounts can now login with their respective credentials.`
-                    ].join('\n');
+                        `🔐 ${hasAnyAssistantField ? 'Both accounts' : 'The account'} can now login with the provided credentials.`
+                    );
+                    
+                    const successMessage = successMessageParts.join('\n');
                     
                     alert(successMessage);
                     
