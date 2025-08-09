@@ -818,8 +818,8 @@
                     <input type="text" id="tenantName" required>
                 </div>
                 <div class="form-group">
-                    <label for="tenantCompany">Company/League Name</label>
-                    <input type="text" id="tenantCompany">
+                    <label for="tenantPassword">Password *</label>
+                    <input type="password" id="tenantPassword" required placeholder="Enter initial password for tenant">
                 </div>
                 <div class="form-group">
                     <label for="tenantPlan">Subscription Plan *</label>
@@ -963,6 +963,7 @@
         // Load Tenants
         async function loadTenants() {
             try {
+                console.log('🔄 Loading tenants from API...');
                 const headers = { 'Content-Type': 'application/json' };
                 if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 
@@ -974,14 +975,17 @@
                 if (response.ok) {
                     const data = await response.json();
                     tenants = data.tenants || [];
+                    console.log(`✅ Loaded ${tenants.length} tenants:`, tenants);
                     displayTenants();
                 } else {
-                    console.error('Failed to load tenants');
+                    console.error('❌ Failed to load tenants:', response.status, response.statusText);
+                    const errorText = await response.text();
+                    console.error('Error details:', errorText);
                     tenants = [];
                     displayTenants();
                 }
             } catch (error) {
-                console.error('Error loading tenants:', error);
+                console.error('❌ Network error loading tenants:', error);
                 tenants = [];
                 displayTenants();
             }
@@ -989,9 +993,11 @@
 
         // Display Tenants
         function displayTenants() {
+            console.log(`📋 Displaying ${tenants.length} tenants`);
             const container = document.getElementById('tenantsContainer');
             
             if (tenants.length === 0) {
+                console.log('📊 No tenants to display - showing empty state');
                 container.innerHTML = `
                     <div style="text-align: center; padding: 60px; color: #6b7280;">
                         <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
@@ -1002,7 +1008,9 @@
                 return;
             }
 
+            console.log('🏗️ Creating tenant cards for:', tenants.map(t => t.email || t.name));
             container.innerHTML = tenants.map(tenant => createTenantCard(tenant)).join('');
+            console.log('✅ Tenant cards displayed successfully');
         }
 
         // Create Tenant Card
@@ -1268,11 +1276,25 @@
         document.getElementById('tenantForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            // Validate required fields
+            const email = document.getElementById('tenantEmail').value.trim();
+            const fullName = document.getElementById('tenantName').value.trim();
+            const password = document.getElementById('tenantPassword').value;
+            
+            if (!email || !fullName || !password) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters long');
+                return;
+            }
+            
             const tenantData = {
-                email: document.getElementById('tenantEmail').value,
-                full_name: document.getElementById('tenantName').value,
-                company: document.getElementById('tenantCompany').value,
-                password: 'temp123', // Temporary password
+                email: email,
+                full_name: fullName,
+                password: password,
                 user_role: 'league_manager',
                 subscription: {
                     plan: document.getElementById('tenantPlan').value,
@@ -1292,12 +1314,31 @@
                 });
 
                 if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Tenant created successfully:', result);
+                    
+                    // Show success message
+                    alert(`✅ Tenant "${fullName}" created successfully!\nEmail: ${email}\nThey can now login with the provided password.`);
+                    
+                    // Close modal and refresh data
                     closeTenantModal();
                     await loadTenants();
                     updateStatistics();
+                    
+                    console.log('📊 Refreshed tenant list and statistics');
                 } else {
-                    const error = await response.text();
-                    alert('Failed to create tenant: ' + error);
+                    const errorText = await response.text();
+                    console.error('❌ Failed to create tenant:', response.status, errorText);
+                    
+                    let errorMessage = 'Failed to create tenant';
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        errorMessage = errorData.error || errorData.message || errorText;
+                    } catch {
+                        errorMessage = errorText || 'Unknown error occurred';
+                    }
+                    
+                    alert('❌ Error creating tenant: ' + errorMessage);
                 }
             } catch (error) {
                 console.error('Error creating tenant:', error);
