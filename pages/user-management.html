@@ -408,6 +408,22 @@
             font-weight: 500;
         }
 
+        .delete-tenant-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+
+        .delete-tenant-btn:hover {
+            background: #dc2626;
+        }
+
         .subscription-info {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -974,10 +990,23 @@
         </div>
     </div>
 
-    <script src="https://five-trackr-yq6ly.ondigitalocean.app/shared-api-config.js"></script>
     <script>
-        // API Configuration
-        const API_BASE = window.API_CONFIG ? window.API_CONFIG.API_BASE : 'https://five-trackr-yq6ly.ondigitalocean.app/api';
+        // === HYBRID API CONFIGURATION ===
+        // Supports both local development and production testing
+        function getApiBaseUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isLocalTesting = urlParams.has('local') || window.location.search.includes('local=true');
+            
+            if (isLocalTesting) {
+                console.log('🔧 LOCAL TESTING MODE: Using localhost API');
+                return 'http://localhost:8080/api';
+            } else {
+                console.log('🌐 PRODUCTION MODE: Using live API');
+                return 'https://five-trackr-yq6ly.ondigitalocean.app/api';
+            }
+        }
+        
+        const API_BASE = getApiBaseUrl();
         
         let accessToken = null;
         let tenants = [];
@@ -1166,14 +1195,17 @@
                                 </div>
                                 <div class="manager-item">
                                     <label>👥 Assistant Manager:</label>
-                                    <value>assistant.${tenant.email}</value>
+                                    <value>${tenant.assistant_manager && tenant.assistant_manager.email ? tenant.assistant_manager.email : 'No assistant manager assigned'}</value>
                                 </div>
                             </div>
                         </div>
                         <div class="subscription-details">
                             <div class="subscription-header">
                                 <h4>Subscription Details</h4>
-                                <button class="manage-subscription-btn" onclick="manageSubscription('${tenantId}')">Manage</button>
+                                <div>
+                                    <button class="manage-subscription-btn" onclick="manageSubscription('${tenantId}')">Manage</button>
+                                    <button class="delete-tenant-btn" onclick="deleteTenant('${tenantId}', '${tenant.email}')">Delete</button>
+                                </div>
                             </div>
                             <div class="subscription-info">
                                 <div class="subscription-item">
@@ -1364,6 +1396,49 @@
 
         function manageSubscription(tenantId) {
             alert(`Subscription management for tenant ${tenantId} - Feature coming soon!`);
+        }
+
+        async function deleteTenant(tenantId, tenantEmail) {
+            // Confirm deletion
+            const confirmMessage = `Are you sure you want to delete tenant "${tenantEmail}"?\n\nThis will permanently delete:\n- The tenant and assistant manager accounts\n- All tenant data\n- The tenant database\n\nThis action cannot be undone!`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            try {
+                console.log(`🗑️ Attempting to delete tenant: ${tenantId} (${tenantEmail})`);
+                
+                if (!accessToken) {
+                    throw new Error('Authentication required. Please log in first.');
+                }
+
+                const headers = { 'Content-Type': 'application/json' };
+                headers['Authorization'] = `Bearer ${accessToken}`;
+
+                const response = await fetch(`${getApiBaseUrl()}/admin/tenants/${tenantId}`, {
+                    method: 'DELETE',
+                    headers
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorData}`);
+                }
+
+                const result = await response.json();
+                console.log('✅ Tenant deletion successful:', result);
+                
+                // Show success message
+                alert(`Tenant "${tenantEmail}" has been successfully deleted.`);
+                
+                // Refresh the tenant list
+                await loadTenants();
+
+            } catch (error) {
+                console.error('❌ Tenant deletion failed:', error);
+                alert(`Failed to delete tenant: ${error.message}`);
+            }
         }
 
         // Helper Functions
