@@ -641,6 +641,21 @@
             color: #6b7280;
         }
 
+        .form-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .form-section h4 {
+            margin: 0 0 15px 0;
+            color: #1f2937;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -870,28 +885,48 @@
                 <button class="close-modal" onclick="closeTenantModal()">×</button>
             </div>
             <form id="tenantForm">
-                <div class="form-group">
-                    <label for="tenantEmail">Email Address *</label>
-                    <input type="email" id="tenantEmail" required>
+                <div class="form-section">
+                    <h4>🏆 League Manager</h4>
+                    <div class="form-group">
+                        <label for="leagueManagerEmail">Email Address *</label>
+                        <input type="email" id="leagueManagerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="leagueManagerName">Full Name *</label>
+                        <input type="text" id="leagueManagerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="leagueManagerPassword">Password *</label>
+                        <input type="password" id="leagueManagerPassword" required placeholder="Enter password for league manager">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="tenantName">Full Name *</label>
-                    <input type="text" id="tenantName" required>
+
+                <div class="form-section">
+                    <h4>👥 Assistant Manager</h4>
+                    <div class="form-group">
+                        <label for="assistantManagerEmail">Email Address *</label>
+                        <input type="email" id="assistantManagerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="assistantManagerName">Full Name *</label>
+                        <input type="text" id="assistantManagerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="assistantManagerPassword">Password *</label>
+                        <input type="password" id="assistantManagerPassword" required placeholder="Enter password for assistant manager">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="tenantPassword">Password *</label>
-                    <input type="password" id="tenantPassword" required placeholder="Enter initial password for tenant">
-                </div>
-                <div class="form-group">
-                    <label for="tenantTier">Subscription Tier *</label>
-                    <select id="tenantTier" required>
-                        <option value="starter">Starter (£49.99/month) - 1 pitch, 10 referees, 1 division, 10 teams</option>
-                        <option value="growth">Growth (£99.99/month) - 3 pitches, 25 referees, 5 divisions, 30 teams</option>
-                        <option value="pro">Pro (£179.99/month) - 8 pitches, 50 referees, 10 divisions, 80 teams</option>
-                    </select>
-                </div>
-                <div class="form-info">
-                    <p><strong>Note:</strong> Each tenant automatically gets 1 League Manager and 1 Assistant Manager. Limits are determined by the selected tier.</p>
+
+                <div class="form-section">
+                    <h4>📊 Subscription</h4>
+                    <div class="form-group">
+                        <label for="tenantTier">Subscription Tier *</label>
+                        <select id="tenantTier" required>
+                            <option value="starter">Starter (£49.99/month) - 1 pitch, 10 referees, 1 division, 10 teams</option>
+                            <option value="growth">Growth (£99.99/month) - 3 pitches, 25 referees, 5 divisions, 30 teams</option>
+                            <option value="pro">Pro (£179.99/month) - 8 pitches, 50 referees, 10 divisions, 80 teams</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" onclick="closeTenantModal()">Cancel</button>
@@ -1359,26 +1394,44 @@
         document.getElementById('tenantForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Validate required fields
-            const email = document.getElementById('tenantEmail').value.trim();
-            const fullName = document.getElementById('tenantName').value.trim();
-            const password = document.getElementById('tenantPassword').value;
+            // Validate required fields for both managers
+            const leagueManagerEmail = document.getElementById('leagueManagerEmail').value.trim();
+            const leagueManagerName = document.getElementById('leagueManagerName').value.trim();
+            const leagueManagerPassword = document.getElementById('leagueManagerPassword').value;
             
-            if (!email || !fullName || !password) {
-                alert('Please fill in all required fields');
+            const assistantManagerEmail = document.getElementById('assistantManagerEmail').value.trim();
+            const assistantManagerName = document.getElementById('assistantManagerName').value.trim();
+            const assistantManagerPassword = document.getElementById('assistantManagerPassword').value;
+            
+            if (!leagueManagerEmail || !leagueManagerName || !leagueManagerPassword ||
+                !assistantManagerEmail || !assistantManagerName || !assistantManagerPassword) {
+                alert('Please fill in all required fields for both managers');
                 return;
             }
             
-            if (password.length < 6) {
-                alert('Password must be at least 6 characters long');
+            if (leagueManagerPassword.length < 6 || assistantManagerPassword.length < 6) {
+                alert('Both passwords must be at least 6 characters long');
+                return;
+            }
+            
+            if (leagueManagerEmail === assistantManagerEmail) {
+                alert('League Manager and Assistant Manager must have different email addresses');
                 return;
             }
             
             const tenantData = {
-                email: email,
-                full_name: fullName,
-                password: password,
-                user_role: 'league_manager',
+                league_manager: {
+                    email: leagueManagerEmail,
+                    full_name: leagueManagerName,
+                    password: leagueManagerPassword,
+                    user_role: 'league_manager'
+                },
+                assistant_manager: {
+                    email: assistantManagerEmail,
+                    full_name: assistantManagerName,
+                    password: assistantManagerPassword,
+                    user_role: 'assistant_manager'
+                },
                 subscription: {
                     tier: document.getElementById('tenantTier').value
                 }
@@ -1398,14 +1451,13 @@
                     const result = await response.json();
                     console.log('✅ Tenant created successfully:', result);
                     
-                    // Show success message with assistant manager info
+                    // Show success message with both manager accounts
                     const successMessage = [
-                        `✅ Tenant "${fullName}" created successfully!`,
-                        `📧 League Manager: ${email}`,
-                        `👥 Assistant Manager: ${result.assistant_email}`,
-                        `🏆 Tier: ${result.tier}`,
-                        `📊 Limits: ${result.limits.pitches} pitches, ${result.limits.referees} referees, ${result.limits.divisions} divisions, ${result.limits.teams} teams`,
-                        `🔐 Both accounts can login with the provided credentials.`
+                        `✅ Tenant created successfully!`,
+                        `🏆 League Manager: ${leagueManagerEmail} (${leagueManagerName})`,
+                        `👥 Assistant Manager: ${assistantManagerEmail} (${assistantManagerName})`,
+                        `📊 Tier: ${result.tier || document.getElementById('tenantTier').selectedOptions[0].text.split(' ')[0]}`,
+                        `🔐 Both accounts can now login with their respective credentials.`
                     ].join('\n');
                     
                     alert(successMessage);
