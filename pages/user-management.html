@@ -1201,6 +1201,30 @@
                 return subscriptionTiers[tier] || subscriptionTiers['starter'];
             };
             
+            // Handle multiple subscription packages
+            let packages = [];
+            let totalMonthlyPrice = 0;
+            let totalVenuesAllowed = 0;
+            
+            if (tenant.subscription && tenant.subscription.packages && tenant.subscription.packages.length > 0) {
+                packages = tenant.subscription.packages;
+                totalMonthlyPrice = packages.reduce((sum, pkg) => sum + pkg.price, 0);
+                totalVenuesAllowed = packages.length; // Each package = 1 venue
+            } else {
+                // Fallback to single subscription for backward compatibility
+                const defaultSub = getSubscriptionDefaults(tenant.tier || 'starter');
+                packages = [{
+                    tier: tenant.tier || 'starter',
+                    name: defaultSub.plan_name,
+                    price: defaultSub.base_price,
+                    description: `${defaultSub.pitches_limit} pitch${defaultSub.pitches_limit === 1 ? '' : 'es'}, ${defaultSub.referees_limit} referees, ${defaultSub.leagues_limit} league${defaultSub.leagues_limit === 1 ? '' : 's'}`,
+                    purchased: true,
+                    assigned: false
+                }];
+                totalMonthlyPrice = defaultSub.base_price;
+                totalVenuesAllowed = 1;
+            }
+            
             const subscription = tenant.subscription || getSubscriptionDefaults(tenant.tier || 'starter');
 
             return `
@@ -1231,7 +1255,7 @@
                                 <div class="metric-label">Venues</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-value">£${subscription.base_price || 0}</div>
+                                <div class="metric-value">£${totalMonthlyPrice.toFixed(2)}</div>
                                 <div class="metric-label">Monthly</div>
                             </div>
                             <div class="metric">
@@ -1262,10 +1286,35 @@
                                     <button class="delete-tenant-btn" onclick="deleteTenant('${tenantId}', '${tenant.email}')">Delete</button>
                                 </div>
                             </div>
+                            
+                            <!-- Subscription Packages Section -->
+                            <div class="packages-section" style="margin-bottom: 20px; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <h5 style="margin: 0 0 10px 0; color: #1f2937; font-size: 14px;">📦 Subscription Packages (${packages.length})</h5>
+                                <div class="packages-grid" style="display: grid; gap: 8px;">
+                                    ${packages.map(pkg => `
+                                        <div class="package-card" style="display: flex; justify-content: space-between; align-items: center; background: white; border: 1px solid #d1d5db; border-radius: 6px; padding: 10px;">
+                                            <div>
+                                                <span style="font-weight: 500; color: #1f2937;">${pkg.name || pkg.tier.charAt(0).toUpperCase() + pkg.tier.slice(1)}</span>
+                                                <span style="margin-left: 8px; font-size: 11px; padding: 2px 6px; background: ${pkg.assigned ? '#fee2e2' : '#d1fae5'}; color: ${pkg.assigned ? '#991b1b' : '#065f46'}; border-radius: 10px;">
+                                                    ${pkg.assigned ? 'Assigned' : 'Available'}
+                                                </span>
+                                            </div>
+                                            <div style="text-align: right;">
+                                                <div style="font-weight: 600; color: #16a34a;">£${pkg.price.toFixed(2)}/mo</div>
+                                                <div style="font-size: 10px; color: #6b7280;">1 venue</div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div style="margin-top: 10px; font-size: 12px; color: #6b7280;">
+                                    💰 Total: £${totalMonthlyPrice.toFixed(2)}/month • 🏟️ ${totalVenuesAllowed} venue${totalVenuesAllowed === 1 ? '' : 's'} allowed
+                                </div>
+                            </div>
+                            
                             <div class="subscription-info">
                                 <div class="subscription-item">
-                                    <label>Tier:</label>
-                                    <value>${subscription.plan_name} ${subscription.base_price > 0 ? `(£${subscription.base_price}/month)` : '(Free)'}</value>
+                                    <label>Venues Used:</label>
+                                    <value>${tenant.venue_count || 0} / ${totalVenuesAllowed}</value>
                                 </div>
                                 <div class="subscription-item">
                                     <label>Pitches:</label>
@@ -1725,14 +1774,15 @@
         };
 
         function addSubscriptionPackage() {
-            // Create modal for package selection
+            // Create modal for package selection with higher z-index to appear above tenant modal
             const modal = document.createElement('div');
-            modal.className = 'modal active';
+            modal.className = 'modal active package-selection-modal';
+            modal.style.zIndex = '10001'; // Higher than tenant modal
             modal.innerHTML = `
                 <div class="modal-content" style="max-width: 600px;">
                     <div class="modal-header">
                         <h3>Add Subscription Package</h3>
-                        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                        <button class="modal-close" onclick="closePackageModal()">&times;</button>
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
@@ -1751,12 +1801,19 @@
                         </div>
                     </div>
                     <div class="modal-actions">
-                        <button type="button" class="btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                        <button type="button" class="btn-secondary" onclick="closePackageModal()">Cancel</button>
                         <button type="button" class="btn-primary" onclick="confirmPackageSelection()" disabled id="confirm-package-btn">Add Package</button>
                     </div>
                 </div>
             `;
             document.body.appendChild(modal);
+        }
+
+        function closePackageModal() {
+            const packageModal = document.querySelector('.package-selection-modal');
+            if (packageModal) {
+                packageModal.remove();
+            }
         }
 
         function selectPackageType(tier, element) {
@@ -1795,8 +1852,8 @@
             selectedPackages.push(packageData);
             updatePackagesDisplay();
             
-            // Close modal
-            document.querySelector('.modal.active').remove();
+            // Close only the package selection modal
+            closePackageModal();
         }
 
         function removePackage(packageId) {
