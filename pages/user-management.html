@@ -937,15 +937,26 @@
                 </div>
 
                 <div class="form-section">
-                    <h4>📊 Subscription</h4>
+                    <h4>📊 Subscription Packages</h4>
                     <div class="form-group">
-                        <label for="tenantTier">Subscription Tier *</label>
-                        <select id="tenantTier" required>
-                            <option value="starter">Starter (£49.99/month) - 1 venue, 1 pitch, 10 referees, 1 league, 1 division per league, 10 teams</option>
-                            <option value="growth">Growth (£99.99/month) - 1 venue, 3 pitches, 25 referees, 5 leagues, 3 divisions per league, 150 teams</option>
-                            <option value="pro">Pro (£179.99/month) - 1 venue, 8 pitches, 50 referees, 10 leagues, 5 divisions per league, 500 teams</option>
-                            <option value="super">Super Tenant - Unlimited access to all features (no subscription required)</option>
-                        </select>
+                        <label>Subscription Packages *</label>
+                        <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">Select one or more subscription packages for this tenant. Each package allows 1 venue.</p>
+                        
+                        <div id="subscription-packages-container" style="border: 1px solid #d1d5db; border-radius: 6px; padding: 12px; background: #f9fafb;">
+                            <div id="selected-packages" style="margin-bottom: 12px;">
+                                <div id="no-packages-selected" style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">
+                                    No packages selected. Click "Add Package" to get started.
+                                </div>
+                            </div>
+                            
+                            <div style="text-align: center;">
+                                <button type="button" class="btn-secondary" onclick="addSubscriptionPackage()" style="padding: 8px 16px; font-size: 14px;">
+                                    + Add Package
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" id="tenantPackages" name="packages" required>
                     </div>
                 </div>
                 <div class="form-actions">
@@ -1565,7 +1576,8 @@
                     user_role: 'league_manager'
                 },
                 subscription: {
-                    tier: document.getElementById('tenantTier').value
+                    packages: selectedPackages,
+                    primary_tier: selectedPackages.length > 0 ? selectedPackages[0].tier : 'starter'
                 }
             };
             
@@ -1605,10 +1617,16 @@
                         successMessageParts.push(`ℹ️ No Assistant Manager created`);
                     }
                     
-                    successMessageParts.push(
-                        `📊 Tier: ${result.tier || document.getElementById('tenantTier').selectedOptions[0].text.split(' ')[0]}`,
-                        `🔐 ${hasAnyAssistantField ? 'Both accounts' : 'The account'} can now login with the provided credentials.`
-                    );
+                    // Display packages information
+                    if (selectedPackages.length > 0) {
+                        const packagesInfo = selectedPackages.map(pkg => `${pkg.name} (£${pkg.price.toFixed(2)}/month)`).join(', ');
+                        successMessageParts.push(`📊 Packages: ${packagesInfo}`);
+                        
+                        const totalPrice = selectedPackages.reduce((sum, pkg) => sum + pkg.price, 0);
+                        successMessageParts.push(`💰 Total Monthly: £${totalPrice.toFixed(2)}/month`);
+                    }
+                    
+                    successMessageParts.push(`🔐 ${hasAnyAssistantField ? 'Both accounts' : 'The account'} can now login with the provided credentials.`);
                     
                     const successMessage = successMessageParts.join('\n');
                     
@@ -1680,10 +1698,152 @@
             }
         });
 
+        // Subscription package management
+        let selectedPackages = [];
+        
+        const subscriptionTiers = {
+            'starter': {
+                name: 'Starter',
+                price: 49.99,
+                description: '1 venue, 1 pitch, 10 referees, 1 league, 1 division per league, 10 teams'
+            },
+            'growth': {
+                name: 'Growth',
+                price: 99.99,
+                description: '1 venue, 3 pitches, 25 referees, 5 leagues, 3 divisions per league, 150 teams'
+            },
+            'pro': {
+                name: 'Pro',
+                price: 179.99,
+                description: '1 venue, 8 pitches, 50 referees, 10 leagues, 5 divisions per league, 500 teams'
+            },
+            'super': {
+                name: 'Super Tenant',
+                price: 0,
+                description: 'Unlimited access to all features (no subscription required)'
+            }
+        };
+
+        function addSubscriptionPackage() {
+            // Create modal for package selection
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3>Add Subscription Package</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Select Package Type</label>
+                            <div style="display: grid; gap: 12px; margin-top: 8px;">
+                                ${Object.entries(subscriptionTiers).map(([tier, info]) => `
+                                    <div class="package-option" data-tier="${tier}" style="border: 2px solid #e5e7eb; border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="selectPackageType('${tier}', this)">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                            <strong>${info.name}</strong>
+                                            <span style="color: #16a34a; font-weight: 600;">£${info.price.toFixed(2)}/month</span>
+                                        </div>
+                                        <div style="font-size: 12px; color: #6b7280;">${info.description}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                        <button type="button" class="btn-primary" onclick="confirmPackageSelection()" disabled id="confirm-package-btn">Add Package</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function selectPackageType(tier, element) {
+            // Remove selection from other options
+            document.querySelectorAll('.package-option').forEach(option => {
+                option.style.borderColor = '#e5e7eb';
+                option.style.backgroundColor = 'transparent';
+            });
+            
+            // Select this option
+            element.style.borderColor = '#2563eb';
+            element.style.backgroundColor = '#eff6ff';
+            
+            // Enable confirm button
+            document.getElementById('confirm-package-btn').disabled = false;
+            document.getElementById('confirm-package-btn').dataset.selectedTier = tier;
+        }
+
+        function confirmPackageSelection() {
+            const selectedTier = document.getElementById('confirm-package-btn').dataset.selectedTier;
+            if (!selectedTier) return;
+            
+            const tier = subscriptionTiers[selectedTier];
+            const packageId = 'pkg_' + Date.now() + '_' + selectedTier;
+            
+            const packageData = {
+                id: packageId,
+                tier: selectedTier,
+                name: tier.name,
+                price: tier.price,
+                description: tier.description,
+                purchased: true,
+                assigned: false
+            };
+            
+            selectedPackages.push(packageData);
+            updatePackagesDisplay();
+            
+            // Close modal
+            document.querySelector('.modal.active').remove();
+        }
+
+        function removePackage(packageId) {
+            selectedPackages = selectedPackages.filter(pkg => pkg.id !== packageId);
+            updatePackagesDisplay();
+        }
+
+        function updatePackagesDisplay() {
+            const container = document.getElementById('selected-packages');
+            const noPackagesDiv = document.getElementById('no-packages-selected');
+            const hiddenInput = document.getElementById('tenantPackages');
+            
+            if (selectedPackages.length === 0) {
+                noPackagesDiv.style.display = 'block';
+                hiddenInput.value = '';
+                hiddenInput.removeAttribute('required');
+                container.innerHTML = '<div id="no-packages-selected" style="color: #6b7280; font-size: 14px; text-align: center; padding: 20px;">No packages selected. Click "Add Package" to get started.</div>';
+            } else {
+                container.innerHTML = selectedPackages.map(pkg => `
+                    <div class="selected-package" style="display: flex; justify-content: space-between; align-items: center; background: white; border: 1px solid #d1d5db; border-radius: 6px; padding: 12px; margin-bottom: 8px;">
+                        <div>
+                            <div style="font-weight: 600;">${pkg.name} Package</div>
+                            <div style="font-size: 12px; color: #6b7280;">${pkg.description}</div>
+                            <div style="font-size: 12px; color: #16a34a; margin-top: 4px;">£${pkg.price.toFixed(2)}/month</div>
+                        </div>
+                        <button type="button" onclick="removePackage('${pkg.id}')" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">Remove</button>
+                    </div>
+                `).join('');
+                
+                hiddenInput.value = JSON.stringify(selectedPackages);
+                hiddenInput.setAttribute('required', 'true');
+            }
+        }
+
+        function showAddTenantModal() {
+            document.getElementById('tenantModalTitle').textContent = 'Add New Tenant';
+            document.getElementById('tenantForm').reset();
+            selectedPackages = []; // Reset packages
+            updatePackagesDisplay(); // Reset packages display
+            document.getElementById('tenantModal').classList.add('active');
+        }
+
         // Initialize
         window.addEventListener('load', () => {
             console.log('Super Admin Dashboard initialized');
             console.log('API Base:', API_BASE);
+            updatePackagesDisplay(); // Initialize packages display
         });
     </script>
 </body>
