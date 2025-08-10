@@ -1139,18 +1139,58 @@
         // Create Tenant Card
         function createTenantCard(tenant) {
             const tenantId = tenant.id || tenant.user_id;
-            const subscription = tenant.subscription || {
-                status: 'active',
-                plan_name: 'Starter',
-                tier_id: 'starter',
-                user_limit: 10,
-                venue_limit: 1,
-                base_price: 49.99,
-                pitches_limit: 1,
-                referees_limit: 10,
-                divisions_limit: 1,
-                teams_limit: 10
+            // Get subscription details based on tier
+            const getSubscriptionDefaults = (tier) => {
+                const subscriptionTiers = {
+                    'starter': {
+                        status: 'active',
+                        plan_name: 'Starter',
+                        tier_id: 'starter',
+                        base_price: 49.99,
+                        pitches_limit: 1,
+                        referees_limit: 10,
+                        leagues_limit: 1,
+                        divisions_per_league_limit: 1,
+                        teams_limit: 10 // 1 league × 1 division × 10 teams
+                    },
+                    'growth': {
+                        status: 'active',
+                        plan_name: 'Growth',
+                        tier_id: 'growth',
+                        base_price: 99.99,
+                        pitches_limit: 3,
+                        referees_limit: 25,
+                        leagues_limit: 5,
+                        divisions_per_league_limit: 3,
+                        teams_limit: 150 // 5 leagues × 3 divisions × 10 teams
+                    },
+                    'pro': {
+                        status: 'active',
+                        plan_name: 'Pro',
+                        tier_id: 'pro',
+                        base_price: 179.99,
+                        pitches_limit: 8,
+                        referees_limit: 50,
+                        leagues_limit: 10,
+                        divisions_per_league_limit: 5,
+                        teams_limit: 500 // 10 leagues × 5 divisions × 10 teams
+                    },
+                    'super': {
+                        status: 'active',
+                        plan_name: 'Super Tenant',
+                        tier_id: 'super',
+                        base_price: 0,
+                        pitches_limit: '∞',
+                        referees_limit: '∞',
+                        leagues_limit: '∞',
+                        divisions_per_league_limit: '∞',
+                        teams_limit: '∞'
+                    }
+                };
+                return subscriptionTiers[tier] || subscriptionTiers['starter'];
             };
+            
+            const subscription = tenant.subscription || getSubscriptionDefaults(tenant.tier || 'starter');
 
             return `
                 <div class="tenant-card" id="tenant-${tenantId}">
@@ -1180,7 +1220,7 @@
                                 <div class="metric-label">Venues</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-value">$${subscription.base_price || 0}</div>
+                                <div class="metric-value">£${subscription.base_price || 0}</div>
                                 <div class="metric-label">Monthly</div>
                             </div>
                             <div class="metric">
@@ -1214,23 +1254,27 @@
                             <div class="subscription-info">
                                 <div class="subscription-item">
                                     <label>Tier:</label>
-                                    <value>${subscription.plan_name} (£${subscription.base_price}/month)</value>
+                                    <value>${subscription.plan_name} ${subscription.base_price > 0 ? `(£${subscription.base_price}/month)` : '(Free)'}</value>
                                 </div>
                                 <div class="subscription-item">
                                     <label>Pitches:</label>
-                                    <value>${tenant.pitch_count || 0} / ${subscription.pitches_limit || subscription.pitch_per_venue_limit}</value>
+                                    <value>${tenant.pitch_count || 0} / ${subscription.pitches_limit}</value>
                                 </div>
                                 <div class="subscription-item">
                                     <label>Referees:</label>
                                     <value>${tenant.referee_count || 0} / ${subscription.referees_limit}</value>
                                 </div>
                                 <div class="subscription-item">
-                                    <label>Divisions:</label>
-                                    <value>${tenant.division_count || 0} / ${subscription.divisions_limit}</value>
+                                    <label>Leagues:</label>
+                                    <value>${tenant.league_count || 0} / ${subscription.leagues_limit}</value>
+                                </div>
+                                <div class="subscription-item">
+                                    <label>Divisions/League:</label>
+                                    <value>${tenant.divisions_per_league_count || 0} / ${subscription.divisions_per_league_limit}</value>
                                 </div>
                                 <div class="subscription-item">
                                     <label>Teams:</label>
-                                    <value>${tenant.team_count || 0} / ${subscription.teams_limit || subscription.user_limit}</value>
+                                    <value>${tenant.team_count || 0} / ${subscription.teams_limit}</value>
                                 </div>
                                 <div class="subscription-item">
                                     <label>Next Billing:</label>
