@@ -72,6 +72,28 @@
             align-items: center;
         }
 
+        .refresh-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .refresh-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .logout-btn {
             background: #ef4444;
             color: white;
@@ -84,6 +106,25 @@
 
         .logout-btn:hover {
             background: #dc2626;
+        }
+
+        /* Package Dropdown Styles */
+        .package-dropdown-arrow {
+            transition: transform 0.3s ease;
+            display: inline-block;
+        }
+        
+        .package-header:hover {
+            background: #f9fafb;
+        }
+        
+        .venue-info-card {
+            transition: all 0.2s ease;
+        }
+        
+        .venue-info-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         /* Statistics Cards */
@@ -847,6 +888,7 @@
                 </div>
             </div>
             <div class="header-actions">
+                <button class="refresh-btn" onclick="refreshDashboard()">🔄 Refresh Data</button>
                 <span id="adminName" style="color: #6b7280; font-size: 14px;">admin@5ivetrackr.com</span>
                 <button class="logout-btn" onclick="logout()">Logout</button>
             </div>
@@ -1087,6 +1129,141 @@
         }
 
         // Logout
+        // Toggle Package Details and Load Venue Information
+        async function togglePackageDetails(tenantId, packageIndex) {
+            const detailsElement = document.getElementById(`package-details-${tenantId}-${packageIndex}`);
+            const arrow = document.querySelector(`#tenant-${tenantId} .package-card:nth-child(${packageIndex + 1}) .package-dropdown-arrow`);
+            
+            if (!detailsElement) return;
+            
+            // Toggle visibility
+            if (detailsElement.style.display === 'none' || detailsElement.style.display === '') {
+                detailsElement.style.display = 'block';
+                if (arrow) arrow.style.transform = 'rotate(180deg)';
+                
+                // Load venue information if not already loaded
+                const loadingElement = detailsElement.querySelector('.loading-venue-info');
+                if (loadingElement) {
+                    await loadTenantVenueInfo(tenantId, packageIndex, detailsElement);
+                }
+            } else {
+                detailsElement.style.display = 'none';
+                if (arrow) arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Load venue information for a specific tenant package
+        async function loadTenantVenueInfo(tenantId, packageIndex, detailsElement) {
+            try {
+                console.log(`🏟️ Loading venue info for tenant ${tenantId}, package ${packageIndex}`);
+                
+                // Get tenant info
+                const tenantCard = document.getElementById(`tenant-${tenantId}`);
+                const tenantEmailElement = tenantCard.querySelector('.tenant-email');
+                const tenantEmail = tenantEmailElement ? tenantEmailElement.textContent.trim() : '';
+                
+                if (!tenantEmail) {
+                    throw new Error('Could not find tenant email');
+                }
+                
+                // Make API call to get tenant venues
+                const headers = { 'Content-Type': 'application/json' };
+                if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+                
+                const response = await fetch(`${apiUrl}/admin/tenant-venues/${tenantId}`, {
+                    method: 'GET',
+                    headers: headers
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Display venue information
+                if (data.success && data.venues && data.venues.length > 0) {
+                    const venues = data.venues;
+                    const venueInfo = venues.map(venue => `
+                        <div class="venue-info-card" style="background: white; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; margin-bottom: 6px;">
+                            <div style="font-weight: 500; font-size: 13px; color: #1f2937; margin-bottom: 4px;">
+                                🏟️ ${venue.venue_name}
+                            </div>
+                            <div style="font-size: 11px; color: #6b7280; margin-bottom: 6px;">
+                                📍 ${venue.address || 'No address provided'}
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 11px;">
+                                <div>⚽ Pitches: ${venue.pitch_count || 0}/${venue.max_pitches || 0}</div>
+                                <div>🏆 Leagues: ${venue.leagues_count || 0}</div>
+                                <div>📊 Divisions: ${venue.divisions_count || 0}</div>
+                                <div>👕 Teams: ${venue.teams_count || 0}</div>
+                                <div>👨‍⚖️ Referees: ${venue.referees_count || 0}</div>
+                                <div>📅 Created: ${venue.created_at ? new Date(venue.created_at).toLocaleDateString() : 'Unknown'}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    detailsElement.innerHTML = `
+                        <div style="font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 8px;">
+                            📋 Venue Details (${venues.length} venue${venues.length === 1 ? '' : 's'})
+                        </div>
+                        ${venueInfo}
+                    `;
+                } else {
+                    detailsElement.innerHTML = `
+                        <div style="text-align: center; color: #6b7280; font-size: 12px; padding: 8px;">
+                            No venues found for this package
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('❌ Failed to load venue info:', error);
+                detailsElement.innerHTML = `
+                    <div style="text-align: center; color: #ef4444; font-size: 12px; padding: 8px;">
+                        Failed to load venue information: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Refresh Dashboard Data
+        async function refreshDashboard() {
+            const refreshBtn = document.querySelector('.refresh-btn');
+            
+            try {
+                // Disable button and show loading state
+                refreshBtn.disabled = true;
+                refreshBtn.innerHTML = '🔄 Refreshing...';
+                
+                console.log('🔄 Refreshing dashboard data...');
+                
+                // Reload tenants and update statistics
+                await loadTenants();
+                updateStatistics();
+                
+                console.log('✅ Dashboard data refreshed successfully');
+                
+                // Show success feedback
+                refreshBtn.innerHTML = '✅ Refreshed!';
+                setTimeout(() => {
+                    refreshBtn.innerHTML = '🔄 Refresh Data';
+                }, 1500);
+                
+            } catch (error) {
+                console.error('❌ Failed to refresh dashboard:', error);
+                refreshBtn.innerHTML = '❌ Failed';
+                setTimeout(() => {
+                    refreshBtn.innerHTML = '🔄 Refresh Data';
+                }, 2000);
+            } finally {
+                // Re-enable button
+                setTimeout(() => {
+                    refreshBtn.disabled = false;
+                }, 2000);
+            }
+        }
+
         function logout() {
             accessToken = null;
             document.getElementById('loginContainer').classList.remove('hidden');
@@ -1291,18 +1468,28 @@
                             <div class="packages-section" style="margin-bottom: 20px; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
                                 <h5 style="margin: 0 0 10px 0; color: #1f2937; font-size: 14px;">📦 Subscription Packages (${packages.length})</h5>
                                 <div class="packages-grid" style="display: grid; gap: 8px;">
-                                    ${packages.map(pkg => `
-                                        <div class="package-card" style="display: flex; justify-content: space-between; align-items: center; background: white; border: 1px solid #d1d5db; border-radius: 6px; padding: 10px;">
-                                            <div>
-                                                <span style="font-weight: 500; color: #1f2937;">${pkg.name || pkg.tier.charAt(0).toUpperCase() + pkg.tier.slice(1)}</span>
-                                                <span style="margin-left: 8px; font-size: 11px; padding: 2px 6px; background: ${pkg.assigned ? '#fee2e2' : '#d1fae5'}; color: ${pkg.assigned ? '#991b1b' : '#065f46'}; border-radius: 10px;">
-                                                    ${pkg.assigned ? 'Assigned' : 'Available'}
-                                                </span>
+                                    ${packages.map((pkg, index) => `
+                                        <div class="package-card" style="background: white; border: 1px solid #d1d5db; border-radius: 6px; overflow: hidden;">
+                                            <div class="package-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; cursor: pointer;" onclick="togglePackageDetails('${tenantId}', ${index})">
+                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                    <span style="font-weight: 500; color: #1f2937;">${pkg.name || pkg.tier.charAt(0).toUpperCase() + pkg.tier.slice(1)}</span>
+                                                    <span style="font-size: 11px; padding: 2px 6px; background: ${pkg.assigned ? '#fee2e2' : '#d1fae5'}; color: ${pkg.assigned ? '#991b1b' : '#065f46'}; border-radius: 10px;">
+                                                        ${pkg.assigned ? 'Assigned' : 'Available'}
+                                                    </span>
+                                                    ${pkg.assigned ? '<span class="package-dropdown-arrow" style="margin-left: 4px; transition: transform 0.2s; font-size: 12px;">▼</span>' : ''}
+                                                </div>
+                                                <div style="text-align: right;">
+                                                    <div style="font-weight: 600; color: #16a34a;">£${pkg.price.toFixed(2)}/mo</div>
+                                                    <div style="font-size: 10px; color: #6b7280;">1 venue</div>
+                                                </div>
                                             </div>
-                                            <div style="text-align: right;">
-                                                <div style="font-weight: 600; color: #16a34a;">£${pkg.price.toFixed(2)}/mo</div>
-                                                <div style="font-size: 10px; color: #6b7280;">1 venue</div>
-                                            </div>
+                                            ${pkg.assigned ? `
+                                                <div class="package-details" id="package-details-${tenantId}-${index}" style="display: none; padding: 12px; border-top: 1px solid #e5e7eb; background: #f9fafb;">
+                                                    <div class="loading-venue-info" style="text-align: center; color: #6b7280; font-size: 12px; padding: 8px;">
+                                                        Loading venue information...
+                                                    </div>
+                                                </div>
+                                            ` : ''}
                                         </div>
                                     `).join('')}
                                 </div>
