@@ -1159,7 +1159,7 @@
                 
                 // Get tenant info
                 const tenantCard = document.getElementById(`tenant-${tenantId}`);
-                const tenantEmailElement = tenantCard.querySelector('.tenant-email');
+                const tenantEmailElement = tenantCard.querySelector('.tenant-details p');
                 const tenantEmail = tenantEmailElement ? tenantEmailElement.textContent.trim() : '';
                 
                 if (!tenantEmail) {
@@ -1564,9 +1564,10 @@
             const card = document.getElementById(`tenant-${tenantId}`);
             card.classList.toggle('expanded');
             
-            if (card.classList.contains('expanded')) {
-                await loadTenantUsers(tenantId);
-            }
+            // Disabled for now - endpoint not implemented
+            // if (card.classList.contains('expanded')) {
+            //     await loadTenantUsers(tenantId);
+            // }
         }
 
         // Load Tenant Users
