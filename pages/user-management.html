@@ -1056,7 +1056,7 @@
             
             if (isLocalTesting) {
                 console.log('🔧 LOCAL TESTING MODE: Using localhost API');
-                return 'http://localhost:8080/api';
+                return 'http://localhost:8002/api';
             } else {
                 console.log('🌐 PRODUCTION MODE: Using live API');
                 return 'https://five-trackr-yq6ly.ondigitalocean.app/api';
@@ -1170,7 +1170,7 @@
                 const headers = { 'Content-Type': 'application/json' };
                 if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
                 
-                const response = await fetch(`${apiUrl}/admin/tenant-venues/${tenantId}`, {
+                const response = await fetch(`${API_BASE}/admin/tenant-venues/${tenantId}`, {
                     method: 'GET',
                     headers: headers
                 });
@@ -1181,31 +1181,91 @@
                 
                 const data = await response.json();
                 
-                // Display venue information
+                // Display venue information - filter to match specific package
                 if (data.success && data.venues && data.venues.length > 0) {
                     const venues = data.venues;
-                    const venueInfo = venues.map(venue => `
+                    
+                    // Get the specific package data to match with venue
+                    const tenant = tenants.find(t => t.id === parseInt(tenantId));
+                    if (!tenant) {
+                        throw new Error('Could not find tenant data');
+                    }
+                    
+                    // Get packages array (same logic as createTenantCard)
+                    let packages = [];
+                    if (tenant.subscription && tenant.subscription.packages && tenant.subscription.packages.length > 0) {
+                        packages = tenant.subscription.packages;
+                    } else {
+                        // Create packages based on venues for display purposes
+                        packages = venues.map(venue => {
+                            const subscription = venue.subscription || { plan: 'Starter' };
+                            const planPrices = { 'Starter': 49.99, 'Growth': 99.99, 'Pro': 179.99, 'Enterprise': 299.99 };
+                            return {
+                                name: subscription.plan || 'Starter',
+                                venue_id: venue.venue_id,
+                                venue_name: venue.venue_name,
+                                price: planPrices[subscription.plan] || 49.99,
+                                assigned: true
+                            };
+                        });
+                    }
+                    
+                    // Get the specific package for this index
+                    const currentPackage = packages[packageIndex];
+                    if (!currentPackage) {
+                        throw new Error('Package not found');
+                    }
+                    
+                    // Filter venues to show only the one for this package
+                    let targetVenue = null;
+                    
+                    if (currentPackage.venue_id) {
+                        // Package has specific venue_id - use it
+                        targetVenue = venues.find(venue => venue.venue_id === currentPackage.venue_id);
+                    } else if (currentPackage.venue_name) {
+                        // Package has venue_name - match by name
+                        targetVenue = venues.find(venue => venue.venue_name === currentPackage.venue_name);
+                    } else {
+                        // Fallback: match by package name/plan to venue subscription plan
+                        const packagePlan = currentPackage.name || currentPackage.tier || 'Starter';
+                        targetVenue = venues.find(venue => {
+                            const venuePlan = venue.subscription?.plan || 'Starter';
+                            return venuePlan === packagePlan;
+                        });
+                        
+                        // If still no match and we have venues, use the first available
+                        if (!targetVenue && venues.length > 0) {
+                            targetVenue = venues[packageIndex] || venues[0];
+                        }
+                    }
+                    
+                    if (!targetVenue) {
+                        throw new Error('No matching venue found for this package');
+                    }
+                    
+                    // Display only the specific venue for this package
+                    const venueInfo = `
                         <div class="venue-info-card" style="background: white; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; margin-bottom: 6px;">
                             <div style="font-weight: 500; font-size: 13px; color: #1f2937; margin-bottom: 4px;">
-                                🏟️ ${venue.venue_name}
+                                🏟️ ${targetVenue.venue_name}
                             </div>
                             <div style="font-size: 11px; color: #6b7280; margin-bottom: 6px;">
-                                📍 ${venue.address || 'No address provided'}
+                                📍 ${targetVenue.address || 'No address provided'}
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 11px;">
-                                <div>⚽ Pitches: ${venue.pitch_count || 0}/${venue.max_pitches || 0}</div>
-                                <div>🏆 Leagues: ${venue.leagues_count || 0}</div>
-                                <div>📊 Divisions: ${venue.divisions_count || 0}</div>
-                                <div>👕 Teams: ${venue.teams_count || 0}</div>
-                                <div>👨‍⚖️ Referees: ${venue.referees_count || 0}</div>
-                                <div>📅 Created: ${venue.created_at ? new Date(venue.created_at).toLocaleDateString() : 'Unknown'}</div>
+                                <div>⚽ Pitches: ${targetVenue.pitch_count || 0}/${targetVenue.max_pitches || 0}</div>
+                                <div>🏆 Leagues: ${targetVenue.leagues_count || 0}</div>
+                                <div>📊 Divisions: ${targetVenue.divisions_count || 0}</div>
+                                <div>👕 Teams: ${targetVenue.teams_count || 0}</div>
+                                <div>👨‍⚖️ Referees: ${targetVenue.referees_count || 0}</div>
+                                <div>📅 Created: ${targetVenue.created_at ? new Date(targetVenue.created_at).toLocaleDateString() : 'Unknown'}</div>
                             </div>
                         </div>
-                    `).join('');
+                    `;
                     
                     detailsElement.innerHTML = `
                         <div style="font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 8px;">
-                            📋 Venue Details (${venues.length} venue${venues.length === 1 ? '' : 's'})
+                            📋 Venue Details for ${currentPackage.name} Package
                         </div>
                         ${venueInfo}
                     `;
@@ -1287,6 +1347,33 @@
                     const data = await response.json();
                     tenants = data.tenants || [];
                     console.log(`✅ Loaded ${tenants.length} tenants:`, tenants);
+                    
+                    // Load venues for each tenant
+                    console.log('🏟️ Loading venues for each tenant...');
+                    const tenantsWithVenues = await Promise.all(tenants.map(async (tenant) => {
+                        try {
+                            const venueResponse = await fetch(`${API_BASE}/admin/tenant-venues/${tenant.id}`, {
+                                method: 'GET',
+                                headers
+                            });
+                            
+                            if (venueResponse.ok) {
+                                const venueData = await venueResponse.json();
+                                tenant.venues = venueData.venues || [];
+                                console.log(`✅ Loaded ${tenant.venues.length} venues for ${tenant.email}`);
+                            } else {
+                                console.warn(`⚠️ Failed to load venues for tenant ${tenant.email}`);
+                                tenant.venues = [];
+                            }
+                        } catch (venueError) {
+                            console.warn(`⚠️ Error loading venues for tenant ${tenant.email}:`, venueError);
+                            tenant.venues = [];
+                        }
+                        return tenant;
+                    }));
+                    
+                    tenants = tenantsWithVenues;
+                    console.log('✅ All tenants loaded with venue data');
                     displayTenants();
                 } else {
                     console.error('❌ Failed to load tenants:', response.status, response.statusText);
@@ -1388,18 +1475,40 @@
                 totalMonthlyPrice = packages.reduce((sum, pkg) => sum + pkg.price, 0);
                 totalVenuesAllowed = packages.length; // Each package = 1 venue
             } else {
-                // Fallback to single subscription for backward compatibility
-                const defaultSub = getSubscriptionDefaults(tenant.tier || 'starter');
-                packages = [{
-                    tier: tenant.tier || 'starter',
-                    name: defaultSub.plan_name,
-                    price: defaultSub.base_price,
-                    description: `${defaultSub.pitches_limit} pitch${defaultSub.pitches_limit === 1 ? '' : 'es'}, ${defaultSub.referees_limit} referees, ${defaultSub.leagues_limit} league${defaultSub.leagues_limit === 1 ? '' : 's'}`,
-                    purchased: true,
-                    assigned: false
+                // Create packages based on tenant's venues if available
+                if (tenant.venues && tenant.venues.length > 0) {
+                    // Create a package for each venue
+                    packages = tenant.venues.map(venue => {
+                        const subscription = venue.subscription || { plan: 'Starter' };
+                        const planPrices = { 'Starter': 49.99, 'Growth': 99.99, 'Pro': 179.99, 'Enterprise': 299.99 };
+                        const defaultSub = getSubscriptionDefaults(subscription.plan?.toLowerCase() || 'starter');
+                        return {
+                            tier: subscription.plan?.toLowerCase() || 'starter',
+                            name: subscription.plan || 'Starter',
+                            price: planPrices[subscription.plan] || 49.99,
+                            description: `${defaultSub.pitches_limit} pitch${defaultSub.pitches_limit === 1 ? '' : 'es'}, ${defaultSub.referees_limit} referees, ${defaultSub.leagues_limit} league${defaultSub.leagues_limit === 1 ? '' : 's'}`,
+                            venue_id: venue.venue_id || venue.id,
+                            venue_name: venue.venue_name || venue.name,
+                            purchased: true,
+                            assigned: true
+                        };
+                    });
+                    totalMonthlyPrice = packages.reduce((sum, pkg) => sum + pkg.price, 0);
+                    totalVenuesAllowed = packages.length;
+                } else {
+                    // Fallback to single subscription for backward compatibility
+                    const defaultSub = getSubscriptionDefaults(tenant.tier || 'starter');
+                    packages = [{
+                        tier: tenant.tier || 'starter',
+                        name: defaultSub.plan_name,
+                        price: defaultSub.base_price,
+                        description: `${defaultSub.pitches_limit} pitch${defaultSub.pitches_limit === 1 ? '' : 'es'}, ${defaultSub.referees_limit} referees, ${defaultSub.leagues_limit} league${defaultSub.leagues_limit === 1 ? '' : 's'}`,
+                        purchased: true,
+                        assigned: false
                 }];
                 totalMonthlyPrice = defaultSub.base_price;
                 totalVenuesAllowed = 1;
+                }
             }
             
             const subscription = tenant.subscription || getSubscriptionDefaults(tenant.tier || 'starter');
