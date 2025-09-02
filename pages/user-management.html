@@ -1449,17 +1449,6 @@
                         leagues_limit: 10,
                         divisions_per_league_limit: 5,
                         teams_limit: 500 // 10 leagues × 5 divisions × 10 teams
-                    },
-                    'super': {
-                        status: 'active',
-                        plan_name: 'Super Tenant',
-                        tier_id: 'super',
-                        base_price: 0,
-                        pitches_limit: '∞',
-                        referees_limit: '∞',
-                        leagues_limit: '∞',
-                        divisions_per_league_limit: '∞',
-                        teams_limit: '∞'
                     }
                 };
                 return subscriptionTiers[tier] || subscriptionTiers['starter'];
@@ -2062,11 +2051,6 @@
                 name: 'Pro',
                 price: 179.99,
                 description: '1 venue, 8 pitches, 50 referees, 10 leagues, 5 divisions per league, 500 teams'
-            },
-            'super': {
-                name: 'Super Tenant',
-                price: 0,
-                description: 'Unlimited access to all features (no subscription required)'
             }
         };
 
